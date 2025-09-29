@@ -1,2 +1,2 @@
 export { RouteFunction } from "./requests";
-export { ActivityCommit, ActivityConfiguration, ActivityMetadata, AuthorGroupAccess, LicenseAccess, StandardsAlignment, Paragraph } from "./activityBuilder";
+export { ActivityCommit, ActivityConfiguration, ActivityMetadata, AuthorGroupAccess, License, LicenseAccess, StandardsAlignment, Paragraph, Step } from "./activityBuilder";

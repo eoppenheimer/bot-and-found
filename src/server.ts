@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import fs from "fs/promises";
 import promptSync from "prompt-sync";
 import {mongoConnection, ObjectId} from "./config";
-import { abItemMetaModel, activityCommitModel, activityMetaModel, collectionCommitModel, collectionMetaModel } from "./models";
+import { abItemCommitModel, abItemMetaModel, activityCommitModel, activityMetaModel, collectionCommitModel, collectionMetaModel } from "./models";
 dotenv.config();
 
 
@@ -19,8 +19,13 @@ app.listen(PORT, async () => {
 
     let i = 0;
     const collected: any[] = [];
-    for await (const metadata of await activityMetaModel.find({})) {
+    for await (const metadata of await abItemMetaModel.find({})) {
         i++;
+
+        if (metadata.deleted) {
+            console.log(/deleted/);
+            continue;
+        };
 
         const {commitId} = metadata;
 
@@ -29,16 +34,29 @@ app.listen(PORT, async () => {
             continue;
         }
 
-        const commit = await activityCommitModel.findOne({_id: commitId});
+        const commit = await abItemCommitModel.findOne({_id: commitId});
+        if (!commit) {
+            console.log(/fucked up, continuing/);
+            continue;
+        }
+
+        if (!(commit.steps.length > 0 && commit.steps[0].root.linearlayout.components.length > 0)) {
+            console.log(/skipping/);
+            continue;
+        }
 
         if (i % SIZE === 0) {
 
-            const output = `import { IActivityCommit } from "../src/models/mongodb/activityCommits";\nconst x = ${JSON.stringify(collected,undefined,4)} satisfies IActivityCommit[];`;
+            await fs.writeFile("./dist/metadata.ts", `import { IABItemMeta } from "../src/models/mongodb/abItemMeta";
+const x = ${JSON.stringify(metadata,undefined,4)} satisfies IABItemMeta;`);
 
-            await fs.writeFile("./dist/test.ts", output);
+            await fs.writeFile("./dist/commit.ts", `import { IABItemCommit } from "../src/models/mongodb/abItemCommits";
+const x = ${JSON.stringify(commit,undefined,4)} satisfies IABItemCommit;`);
 
-            await fs.writeFile("./dist/test.ts", output);
-            prompt("Wrote to file! Press Enter to proceed.");
+            await fs.writeFile("./dist/getActivityConfiguration.ts", `import { ActivityConfiguration } from "../src/types";
+const x = {} satisfies ActivityConfiguration;`);
+            
+            prompt(`${metadata._id} Wrote to file! Press Enter to proceed.`);
             collected.length = 0;
         }
 

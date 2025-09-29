@@ -2,15 +2,15 @@ import { ObjectId, Document, Timestamp } from "mongodb";
 import { MongoModel } from "./Model";
 import { ActivityCommit } from "../../types";
 
-type TEMP_STRING = string;
-
 export interface IActivityCommit {
-    _id: ObjectId | TEMP_STRING;
+    _id: ObjectId;
     doc: ActivityCommit;
-    edit_ts: Date | TEMP_STRING;
-    metaId: ObjectId | TEMP_STRING;
+    edit_ts: Date;
+    metaId: ObjectId;
     userId: string;
-    translatedLanguages?: Record<string, ObjectId | TEMP_STRING>;
+    editionId?: ObjectId;
+    discarded?: boolean;
+    translatedLanguages?: Record<string, ObjectId>;
 }
 
 class ActivityCommitModel extends MongoModel<IActivityCommit> {}

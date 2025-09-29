@@ -3,240 +3,15 @@
  * @author {Ezra Oppenheimer}
  */
 
-import {Paragraph} from "./paragraph";
-import {PolypadState} from "./polypad";
-import {GraphState} from "@desmodder/graph-state";
-
-/** Activity identifier received after creating a new activity. */
-export interface CreateActivityResponse {
-    /** 24 character identifier of the created activity. */
-    customId: string;
-}
-
-/** Payload used when creating activites. */
-export interface CreateActivityPayload {
-    /** Metadata, particularly the ability to share this activity. */
-    meta: CreateActivityMeta;
-    /** Documentation, such as the title or stylization. */
-    doc: CreateActivityDoc;
-}
-
-/** Meta section of creating payloads. */
-interface CreateActivityMeta {
-    /** Can we share this activity? (public or private) */
-    permissionToShare: boolean;
-}
-
-interface CreateActivityDoc {
-    /** Title of the create activity. */
-    title: string;
-    /** Optional description of created activity. */
-    blurb?: string;
-    /** Stylization theme. */
-    themeId: "default" | "early_elementary" | "k5";
-    /** Is this an mCLASS assessment? */
-    mCLASSFieldStudy?: boolean;
-    /** Is there only a next button? This restricts forward navigation. */
-    nextOnlyNavigation?: boolean;
-}
-
-/** Container for requesting activity. */
-export interface RequestedActivity {
-    /** The published activity configuration. */
-    customLesson: ActivityPublished;
-    /** Yeah no idea. */
-    lessonStandardDescriptions?: {
-        "CCSS": object,
-        "TEKS": object,
-        "NY": object
-    }
-    noindex: boolean;
-}
-
-/** Interface of a Desmos Activity, published for all to see.
- * 
- * I am using Amplify Education reserved properties here. */
-export interface ActivityDefault {
-    /** 24 character identifier for this activity. */
-    _id: string;
-    /** Version number. Ensure to always set this to `0` when POSTing. */
-    version: number;
-    /** Where this activity originates from. */
-    ancestors?: Ancestor[];
-    /** Type of activity. For now I'm going to restrict this as `"activitybuilder"`, not sure what else can go here. */
-    activity: "activitybuilder";
-    /** Collaborators of this activity. List of 24 character identifiers. */
-    collaborators?: string[];
-    /** Is this activity complete? Not sure exactly but ok. */
-    complete: true;
-    /** (ISO 8601) Timestamp when this activity was last edited. */
-    edit_ts: string;
-    /** Stylization theme. */
-    themeId: "default" | "early_elementary" | "k5" | "late_elementary";
-    /** Unsure of this. */
-    licenses: any[];
-    /** Unsure of this. */
-    screenLicenses: any[];
-    /** Can we share this activity? (public or private) */
-    permissionToShare: boolean;
-    /** (ISO 8601) Timestamp when this activity was published. */
-    publishedTimestamp: string;
-    /** Title of this activity. */
-    title: string;
-    /** User of this activity. */
-    user: User;
-    /** Author of this activity */
-    author: User;
-    /** 24 character identifier of the most recent commit. */
-    commitId: string;
-    /** Slides of the activity. */
-    steps: Step[];
-    /** Summary description of the activity. */
-    blurb?: object;
-    /** Identifier of the thumbnail. */
-    thumbId?: string;
-    /** URL to the image thumbnail of the activity. */
-    thumb?: string;
-    /** Is this an mCLASS assessment? */
-    mCLASSFieldStudy?: boolean;
-    /** Is there only a next button? This restricts forward navigation. */
-    nextOnlyNavigation?: boolean;
-    /** Flags to configure the flow of activities. Offers some abilities. */
-    flags?: Flags;
-    /** Unsure of this. */
-    standardsAlignment?: any[];
-    /** This is the Desmos Curriculum proprietary licensing. */
-    activityLicenses?: {type: string, productId: string}[]
-    /** License access. */
-    licenseAccess?: string;
-    /** Custom metadata. */
-    customMetadata?: CustomMetadata;
-    /** Standards. Unsure. */
-    standards?: any[];
-    /** Proficiency nodes. Unsure. */
-    proficiencyNodes?: object;
-    /** Author groups. This is important for permissions, feel free to fill later. */
-    authorGroupAccess?: object;
-    retailAssetIds?: any[];
-    voiceKey?: string;
-    disableFallbackAudio?: boolean;
-    spam?: boolean;
-    spamConfidenceLevel?: string;
-    
-    // I'm now starting to add stuff. This can all be fleshed out at a later date.
-    screenLicenseAccess?: "licensed" | null;
-    activityRetailAssetIds?: any[];
-    screenRetailAssetIds?: any[];
-    grades?: any[];
-}
-
-/** Flags to configure the flow of activities. Offers some abilities. */
-export interface Flags {
-    /** Use degrees instead of radians. */
-    degreeModeEnabled?: boolean;
-    /** Disable `"%"` → `"% of"` expansion. */
-    disablePercentOfExpansion?: boolean;
-    /** Adds a four-function calculator students can click at the top of their screen. */
-    fourFunctionCalculatorToolEnabled?: boolean;
-    /** Adds a graphing calculator students can click at the top of their screen. */
-    graphingCalculatorToolEnabled?: boolean;
-    /** Adds a scientific calculator students can click at the top of their screen. */
-    scientificCalculatorToolEnabled?: boolean;
-}
-
-/** Published activities may include a `draftAuthor` and `draftTitle`. Such properties *do not* appear in drafts. */
-export interface ActivityPublished extends ActivityDefault {
-    /** The user who authored the latest draft. Requires `draftTitle`. */
-    draftAuthor?: User;
-    /** The title of the latest draft. Requires `draftAuthor`. */
-    draftTitle?: string;
-    
-}
-
-
-/** This represents a draft, which shows more features than `ActivityPublished`. */
-export interface ActivityDraft extends ActivityDefault {
-    /** Lesson number. */
-    lessonNumber?: string;
-    /** Activity subtitle. */
-    subtitle?: string;
-    /** Determines if activity is mobile friendly. */
-    mobileFriendly?: boolean;
-    /** The duration this activity lasts. */
-    timeEstimate?: number;
-    /** Standard alignments. This is a pretty expansive list of keywords that is beyond me. */
-    lessonStandardsAlignment?: LessonStandardsAlignment;
-    /** Lesson preview email. Unsure of this. */
-    lessonPreviewEmailId?: string;
-    /** Stores a warning if this lesson doesn't work well on iPads. */
-    iPadWarning?: string;
-    /** Store keywords here. */
-    keywords?: string[];
-    /** No idea. Follows the same structure as `lessonPlan`. */
-    learningGoals?: object;
-    /** No idea. Follows the same structure as `learningGoals` */
-    lessonPlan?: object;
-    /** Store vocabulary words here. */
-    vocab?: string[];
-}
-
-/** Some template for more metadata in activites. */
-export interface LessonStandardsAlignment {
-    /** Unsure of this. */
-    addressing?: {standardSet: string, id: string}[];
-    /** Unsure of this. */
-    assessing?: {standardSet: string, id: string}[];
-    /** Unsure of this. */
-    buildingOn?: {standardSet: string, id: string}[];
-    /** Unsure of this. */
-    buildingTowards?: {standardSet: string, id: string}[];
-}
-
-/** Stores the custom metadata for this activity. */
-export interface CustomMetadata {
-    /** Amplify reserved metadata for this activity. */
-    amplify: CustomMetadataAmplify;
-}
-
-/** Amplify reserved metadata for this activity. */
-export interface CustomMetadataAmplify {
-    /** A list of UUIDs containing their metadata. These are screen IDs. */
-    screen: {[uuid: string]: CustomMetadataAmplifyScreen | null};
-    /** Unsure what this stores. */
-    component: object;
-}
-
-export interface CustomMetadataAmplifyScreen {
-    schemaVersion: string;
-    schemaName: string;
-    value: {
-        isPowerUp: boolean;
-        isUpNextItem: boolean;
-        /** These contain the standards used by this screen, such as: `"CCSS.MATH.CONTENT.K.NBT.A.1"` */
-        standardsAddressing: string[];
-        proficiencyNode: any[];
-        secondarySkill?: any[];
-    }
-}
-
-/** Stores a single user's ID, accompanied by their display name. */
-export interface User {
-    /** 24 character identifier for this user. */
-    id: string;
-    /** Display name for this user. Example: "Ezra Oppenheimer". */
-    displayName: string;
-}
-
-/** Stores a single user's ID, accompanied by their display name. */
-export interface Ancestor {
-    /** 24 character identifier of the ancestor activity. */
-    _id: string;
-    /** Author of this ancestor. */
-    user: User;
-}
+import { StandardsAlignment } from "./doc";
+import { Paragraph } from "./paragraph";
+import { PolypadState } from "./polypad";
+import { GraphState } from "@desmodder/graph-state";
 
 /** Sections to divide activites into categories. */
-export type SectionKeys = "im-pilot-warmup" | "im-pilot-activity" | "im-pilot-synthesis" | "activity-section-summary" | "im-pilot-cooldown" | "im-pilot-exit-ticket" | "activity-section-center";
+export type SectionKeys = "im-pilot-warmup" | "im-pilot-activity" | "im-pilot-synthesis" | "activity-section-summary" | "im-pilot-cooldown" | "im-pilot-exit-ticket" | "activity-section-center" | "im-pilot-show-what-you-know";
+
+type CalculatorState = object | undefined | null | GraphState;
 
 /** The layout of a single screen. */
 export interface Step {
@@ -244,10 +19,10 @@ export interface Step {
     type: "two-column";
     /** 24 character identifier of this screen. */
     id: string;
-    /** Unsure of this. */
-    teacherTips: object;
+    /** Tips for the teacher to use on this screen. */
+    teacherTips: TeacherTips;
     /** Begins a new section at this screen. */
-    beginNewSection?: SectionKeys;
+    beginNewSection?: SectionKeys | null;
     /** 1/5 layers of descent into the slide. */
     root: Root;
     /** Title of this screen. */
@@ -270,11 +45,27 @@ export interface Step {
     /** Background of this screen. */
     background?: BackgroundSolid | BackgroundGradient | null;
     /** Standards of this screen. */
-    standards?: any[];
+    standards?: StandardsAlignment[];
     /** Proficiency nodes of this screen. */
-    proficiencyNodes?: any[];
+    proficiencyNodes?: ProficiencyNode[];
     /** The source of this reference item (assuming it is a reference). */
     sourceItem?: SourceItem;
+    /** The data of this section. */
+    sectionData?: SectionData;
+    /** The student edition starting page. */
+    studentEditionStartingPage?: number;
+    /** Not really sure what this does... */
+    advancedLayout?: boolean;
+}
+
+interface SectionData {
+    estimatedSectionTime: number;
+}
+
+
+interface ProficiencyNode {
+    name: string;
+    proficiencyNodeId: number;
 }
 
 export interface SourceItem {
@@ -288,7 +79,7 @@ export interface SourceItem {
             newId: string;
         }[]
     };
-    itemType: "reference"
+    itemType?: "reference"
   }
 
 export interface BackgroundSolid {
@@ -388,18 +179,14 @@ export interface Annotation {
 /** Tips that appear at the bottom of the slide. */
 export interface TeacherTips {
     /** Sample responses of students. */
-    "sample-responses"?: Paragraph;
+    "sample-responses"?: Paragraph | string | null;
     /** Assistance for students on how to use the activity. */
-    "student-support"?: Paragraph;
+    "student-support"?: Paragraph | string | null;
     /** Assistance for teachers on how to use this activity. */
-    "teacher-moves"?: Paragraph;
+    "teacher-moves"?: Paragraph | string | null;
+    /** Rubric on the lesson. */
+    "rubric"?: Paragraph | string | null;
 }
-
-/** 
-* Rich text to display in the Activity Builder.
-*/
-
-
 
 /** History of a particular slide. */
 export interface Provenance {
@@ -481,6 +268,10 @@ export interface Component {
     "action-button"?: ButtonComponent;
     /** Polypad canvas. */
     "polypad"?: PolypadComponent;
+    /** Student survey. */
+    "student-survey"?: DefaultComponent;
+    /** Card sort. */
+    "cardsort"?: CardSortComponent;
 }
 
 /** Types of components that can be used. */
@@ -498,51 +289,65 @@ export interface DefaultComponent {
     /** 24 character identifier for this component. */
     id: string;
     /** Image URL of the thumbnail for this component. */
-    img?: string;
+    img?: string | null;
     /** A new afterthought feature to prevent sinks from overwriting GC components. */
     legacyActionsOverrideSinks?: boolean;
     /** Is this component hidden from the dashboard? */
-    hideFromDashboard?: true;
+    hideFromDashboard?: boolean;
     /** Unsure. */
     swappedComponentData?: any;
     /** Standards of this component. */
-    standards?: any;
+    standards?: StandardsAlignment[];
+    /** Proficiency nodes of this component. */
+    proficiencyNodes?: ProficiencyNode[];
 }
 
 /** Desmos graph component. */
 export interface GraphComponent extends DefaultComponent {
     exhibitMode: boolean;
-    calculatorState: GraphState | undefined | null;
+    calculatorState?: CalculatorState;
     aspectRatio?: "4:3" | "16:9";
-    hideBorder?: true;
+    hideBorder?: boolean;
     hideResponsesFromDashboard?: boolean;
     whiteBackground?: boolean;
+    showBackground?: boolean;
 }
 
 
 export interface InputMathComponent extends DefaultComponent {
     showPeerResponses: boolean;
-    explainResponse: boolean;
+    explainResponse?: boolean;
+    showMathHelperLink?: boolean;
 }
 
 export interface InputTextComponent extends DefaultComponent {
     showPeerResponses: boolean;
+    shouldShowUploadImageButton?: boolean;
+    shouldShowUploadAudioButton?: boolean;
+    shouldShowTypeMathButton?: boolean;
+}
+
+interface MultipleChoiceKey {
+    choiceIds: Record<string, boolean>;
 }
 
 export interface MultipleChoiceComponent extends DefaultComponent {
-    answerKey?: object;
+    answerKey?: MultipleChoiceKey | null;
     choices: object;
-    choiceLayout?: "buttons" | "list";
+    choiceLayout?: "buttons" | "list" | "segment" | "grid" | null;
     choiceIds: string[];
     multipleChoiceType: "simple" | "multi";
-    showExplanation: boolean;
+    showExplanation?: boolean;
     showPeerResponses: boolean;
-    randomizeChoices: boolean;
+    randomizeChoices?: boolean;
+    enforceOptionSelected?: boolean;
+    showExplainAtEndOfLayout?: boolean;
 }
 
 export interface ImageComponent extends DefaultComponent {
     alt: string;
-    img?: string;
+    allowFullscreen?: boolean;
+    showBorder?: boolean;
 }
 
 export interface NoteComponent extends DefaultComponent {
@@ -550,11 +355,18 @@ export interface NoteComponent extends DefaultComponent {
     background?: {type: "sticky" | "blue" | "taped" | "blank"};
     doc?: string;
     noteType?: "note";
+    readTextAloudMeta?: {
+        audioUrl: string;
+        sourceText: string;
+        voice?: "Gigi" | "Hayden" | "Astrid";
+    }
 }
 
 export interface OrderedListComponent extends DefaultComponent {
     items: object;
     itemIds: string[];
+    topString?: string;
+    bottomString?: string;
 }
 
 export interface VideoComponent extends DefaultComponent {
@@ -562,10 +374,21 @@ export interface VideoComponent extends DefaultComponent {
     videoConfig: object;
 }
 
+type SketchComponentBackground =  {
+    type: "image";
+    img: string;
+} | {
+    type: "graph";
+    id?: string;
+    img?: string;
+} | {
+    type: "blank";
+}
+
 export interface SketchComponent extends DefaultComponent {
-    version: number;
-    background: {type: string};
-    enabledTools: {
+    version?: number;
+    background: SketchComponentBackground;
+    enabledTools?: {
         points: boolean;
         line: boolean;
         pencil: boolean;
@@ -575,7 +398,7 @@ export interface SketchComponent extends DefaultComponent {
     isColorPickerEnabled?: boolean;
     isClearEnabled?: boolean;
     aspectRatio?: string;
-    calculatorState: GraphState;
+    calculatorState?: CalculatorState;
     whiteBackground?: boolean;
 }
 
@@ -586,14 +409,69 @@ export interface TableComponent extends DefaultComponent {
     columnTypes: any;
     fullyEditable: boolean;
     canAddRows: boolean;
-    columnHeaders: boolean;
-    rowHeaders: boolean;
-    hideResponsesFromDashboard?: true;
+    columnHeaders?: boolean;
+    rowHeaders?: boolean;
+    hideResponsesFromDashboard?: boolean;
+    showMathHelperLink?: boolean;
+    tableLayout?: "vertical";
 }
 
 export interface ButtonComponent extends DefaultComponent {
-    label: string | null;
-    resetOnNavigation: boolean;
+    label?: string | null;
+    resetOnNavigation?: boolean;
+}
+
+
+
+interface CardSortAnswerGroup {
+    id: string;
+    cardIds: string[];
+    x: number;
+    y: number;
+    collapsed?: boolean;
+}
+
+interface CardSortAnswerKey {
+    groupIds: string[];
+    groups: Record<string, CardSortAnswerGroup>;
+}
+
+interface CardSortSingleDefault {
+    size: "default" | "large";
+}
+
+interface CardSortSingleImage extends CardSortSingleDefault {
+    type: "image";
+    img?: string;
+    alt?: string;
+}
+
+interface CardSortSingleText extends CardSortSingleDefault {
+    type: "text";
+    text?: string;
+    doc?: string;
+}
+
+interface CardSortSingleGraph extends CardSortSingleDefault {
+    type: "graph";
+    calculatorState?: CalculatorState;
+    img?: string;
+    alt?: string;
+}
+
+interface CardSortSingleCategory extends CardSortSingleDefault {
+    type: "category";
+    /** Use English color, lowercased. */
+    color: string;
+    doc?: string;
+}
+
+type CardSortSingle = CardSortSingleImage | CardSortSingleText | CardSortSingleGraph | CardSortSingleCategory;
+
+export interface CardSortComponent extends DefaultComponent {
+    cards: Record<string, CardSortSingle>
+    cardIds: string[];
+    answerKey?: CardSortAnswerKey;
 }
 
 export interface PolypadComponent extends DefaultComponent {

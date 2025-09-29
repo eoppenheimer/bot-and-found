@@ -1,2 +1,3 @@
 export { Paragraph } from "./paragraph";
-export { ActivityCommit, ActivityConfiguration, ActivityMetadata, AuthorGroupAccess, LicenseAccess, StandardsAlignment } from "./doc";
+export { Step } from "./step";
+export { ActivityCommit, ActivityConfiguration, ActivityMetadata, AuthorGroupAccess, License, LicenseAccess, StandardsAlignment } from "./doc";

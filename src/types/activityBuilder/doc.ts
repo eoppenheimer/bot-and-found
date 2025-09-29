@@ -4,8 +4,32 @@
  */
 
 import {Paragraph} from "./paragraph";
+import { Step } from "./step";
+
+interface NOT_BUILT_YET {EzraHasNotBuiltThisYet?: 0};
+
+/** Stores a single user's ID, accompanied by their display name. */
+export interface User {
+    /** 24 character identifier for this user. */
+    id: string;
+    /** Display name for this user. Example: "Ezra Oppenheimer". */
+    displayName?: string;
+}
+
+/** Stores a single user's ID, accompanied by their display name. */
+export interface Ancestor {
+    /** 24 character identifier of the ancestor activity. */
+    _id: string;
+    /** Author of this ancestor. */
+    user: User;
+}
 
 type AuthorTag = "desmos" | "cpm"
+
+interface Settings {
+    degreeModeEnabled?: boolean | null;
+    nextOnlyNavigation?: boolean | null;
+}
 
 interface SourceItemsRollup {
     itemMetaId: string;
@@ -40,17 +64,31 @@ export interface StandardsAlignment {
 
 interface Flags {
     /** Use degrees instead of radians. */
-    degreeModeEnabled?: boolean;
+    degreeModeEnabled?: boolean | null;
     /** Disable `"%"` → `"% of"` expansion. */
-    disablePercentOfExpansion?: boolean;
+    disablePercentOfExpansion?: boolean | null;
     /** Adds a four-function calculator students can click at the top of their screen. */
-    fourFunctionCalculatorToolEnabled?: boolean;
+    fourFunctionCalculatorToolEnabled?: boolean | null;
     /** Adds a graphing calculator students can click at the top of their screen. */
-    graphingCalculatorToolEnabled?: boolean;
+    graphingCalculatorToolEnabled?: boolean | null;
     /** Adds a scientific calculator students can click at the top of their screen. */
-    scientificCalculatorToolEnabled?: boolean;
+    scientificCalculatorToolEnabled?: boolean | null;
     /** Permits the students to mix text with their math inputs. */
-    mixedTextInput?: boolean;
+    mixedTextInput?: boolean | null;
+}
+
+interface ResourceGroup {
+    type: "supplemental-activities";
+    resources: {
+        type: "alp-resource-section-divider" | "alp-resource-text-only" | "alp-resource-activity-link";
+        id: string;
+        heading?: Paragraph;
+        description?: Paragraph;
+        headerTag?: "support" | "strengthen" | "stretch";
+        resourceDescription?: Paragraph;
+        activityId?: string;
+        collectionIds?: string[];
+    }[];
 }
 
 interface ProficiencyNode {
@@ -70,17 +108,28 @@ interface TranslatedLanguagePaperResource {
     doc: string;
 }
 
-interface License {
+export interface License {
     type: "product",
     productId: "im-pilot"
 }
 
+interface BynderPDF {
+    url: string;
+    type: "bynder";
+}
+
+interface StudentEdition {
+    title: string;
+    pdf: BynderPDF | string;
+}
+
 interface PaperResource {
     title: string;
-    pdf: string;
+    pdf: BynderPDF | string;
     doc: string;
     id: string;
     licenses?: License[];
+    inheritEntitlementInfo?: boolean;
     translatedLanguages?: Record<string, TranslatedLanguagePaperResource>;
 }
 
@@ -118,11 +167,14 @@ interface AmplifyComponentMetadata {
     }
 }
 
-interface AmplifyScreenMetadata {
+export interface AmplifyScreenMetadata {
     schemaVersion: string;
     schemaName: "amplify-screen-metadata";
     value: {
-        iHaventDoneThisYet: boolean;
+        isPowerUp?: boolean;
+        isUpNextItem?: boolean;
+        standardsAddressing?: string[];
+        proficiencyNode?: string[];
     }
 }
 
@@ -130,10 +182,10 @@ interface AmplifyActivityMetadata {
     schemaVersion: string;
     schemaName: "amplify-activity-metadata";
     value: {
-        lessonType: "assessment";
-        assessmentType: "pre-unit" | "interim" | "post-unit";
-        assessmentIndex: number;
-        assessmentForm: string;
+        lessonType: "assessment" | "lessonPractice";
+        assessmentType: "pre-unit" | "interim" | "post-unit" | null;
+        assessmentIndex: number | null;
+        assessmentForm: string | null;
         standardsBuildingOn: string[];
         standardsBuildingTowards: string[];
         proficiencyNode: string[];
@@ -151,7 +203,7 @@ interface CustomMetadata {
     amplify: AmplifyMetadata;
 }
 
-export type LicenseAccess = "preview" | "try-it" | null;
+export type LicenseAccess = "licensed" | "preview" | "try-it" | "unreleased" | null;
 
 export interface AuthorGroupAccess {
     "adm-sandbox"?: true;
@@ -169,8 +221,12 @@ export interface AuthorGroupAccess {
     "pd-design"?: true;
 }
 
+/** 
+ * This defines the content of an Amplify activity.
+ * You primarily will find this using `activityCommits` on MongoDB, but it will also get attached to the Activity Builder itself.
+*/
 interface ActivityDoc {
-    steps: any[];
+    steps: Step[];
     title: string;
     subtitle?: string;
     flags?: Flags;
@@ -178,11 +234,16 @@ interface ActivityDoc {
     learningGoals?: Paragraph;
     lessonPlan?: Paragraph;
     linkedActivities?: LinkedActivity[];
+    linkedCollections?: NOT_BUILT_YET[]; 
+    activityResources?: NOT_BUILT_YET[];
+    studentEdition?: StudentEdition;
     paperResources?: PaperResource[];
+    resourceGroups?: ResourceGroup[];
     webResources?: WebResource[];
+    category?: "lesson";
     vocab?: string[];
     instructionalRoutines?: string[];
-    blurb?: Paragraph;
+    blurb?: Paragraph | string;
     abTestingExperiments?: ABTestingExperiments;
     isPresentation?: boolean;
     /** URL of the activity thumbnail. */
@@ -191,15 +252,17 @@ interface ActivityDoc {
     /** There also exists `.standardsAlignment`, so make sure to verify both. */
     standards?: StandardsAlignment[];
     /** There also exists `.standards`, so make sure to verify both. */
-    standardsAlignment?: StandardsAlignment[];
+    standardsAlignment?: StandardsAlignment[] | null;
     proficiencyNodes?: ProficiencyNode
     lessonStandardsAlignment?: LessonStandardsAlignment;
     screenLicenses?: number[];
     /** Lesson preview email. Unsure of this. */
     lessonPreviewEmailId?: string;
-    customMetadata?: CustomMetadata;
+    customMetadata?: CustomMetadata | null;
     accessibilityNotes?: string;
-    modalityRecommendation?: "digital" | "print";
+    modalityRecommendation?: "digital" | "print" | "digitalHS";
+    /** The explanation as to why our `modalityRecommendation` was chosen. */
+    modalityExplanation?: string;
     screenReaderFriendly?: boolean;
     /** Stores a warning if this lesson doesn't work well on iPads. */
     iPadWarning?: string;
@@ -207,11 +270,25 @@ interface ActivityDoc {
     timeEstimate?: number;
     /** Determines if activity is mobile friendly. */
     mobileFriendly?: boolean;
+    /** What grades does this belong to? */
+    grades?: Grade[];
+    /** Which voice was used for this lesson? */
+    voiceKey?: "Boost Math";
+    /** Present on items. */
+    metaId?: string;
+    /** Which settings does this activity use? */
+    settings: Settings;
+    /** Which theme is this activity using? */
+    themeId?: "default" | "early_elementary" | "late_elementary" | "k5";
 }
 
+/** 
+ * This defines the metadata of an Amplify activity.
+ * You primarily will find this using `activityMeta` on MongoDB, but it will also get attached to the Activity Builder itself.
+*/
 export interface ActivityMetadata {
-    deleted?: true;
-    permissionToShare: boolean | null;
+    deleted?: boolean;
+    permissionToShare?: boolean | null;
     licenses?: License[];
     activityLicenses?: License[];
     licenseAccess?: LicenseAccess;
@@ -228,7 +305,7 @@ export interface ActivityMetadata {
     screenLicenseAccess?: LicenseAccess | null;
     sourceItemsRollup?: SourceItemsRollup[];
     spamConfidenceLevel?: string;
-    numInstances: number;
+    numInstances?: number;
     collectionHierarchy?: string[][];
     routedADMId?: string;
     curriculumLocation?: CurriculumLocation;
@@ -236,28 +313,70 @@ export interface ActivityMetadata {
     subjectArea?: "6-12";
 }
 
+type Grade = "K" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "11" | "12";
 
+
+/** This is the interface of an activity's commit on MongoDB. */
 export interface ActivityCommit extends ActivityDoc {
-    version: 0;
+    /** This was retrieved from the Mongo commits database. */
+    version?: 0;
 }
 
-export interface ActivityConfiguration extends ActivityDoc {
+/** 
+ * This is the interface of of the output of `getActivityConfiguration()` on the Activity Builder.
+ * 
+ * Be *extremely* cognizant when modifying. You probably need to modify `ActivityMetadata` instead!!
+*/
+export interface ActivityConfiguration extends ActivityDoc, ActivityMetadata {
+    /** This was retrieved from inside the Activity Builder. */
     version: 1;
     _id: string;
     /** Type of activity. For now I'm going to restrict this as `"activitybuilder"`, not sure what else can go here. */
     activity: "activitybuilder"
     /** Was this authored by Team Desmos? */
     teamDesmosAuthored?: boolean;
+    /** The title of this activity. Does not exist on Item Bank as far as I can tell. */
+    draftTitle?: string;
     /** Is this published? */
     complete?: true;
     /** (ISO 8601) Timestamp when this activity was last edited. */
     edit_ts: string;
     /** (ISO 8601) Timestamp when this activity was published. */
-    publishedTimestamp: string;
-    licenses: License[];
-    authorGroupAccess?: AuthorGroupAccess;
-    activityLicenses: License[];
-    licenseAccess?: LicenseAccess;
-    retailAssetIds?: string[];
-    permissionToShare: boolean;
+    publishedTimestamp?: string;
+    /** Ancestors of this activity. */
+    ancestors?: Ancestor[];
+    /** User of this activity. */
+    user: User;
+    /** Commit ID for this version. */
+    commitId: string;
+    /** Translated languages. */
+    translatedLanguages?: Record<string, string>;
+    /** @deprecated USED IN ITEM BANK!! Description. */
+    description?: Paragraph | null;
+    /** @deprecated USED IN ITEM BANK!! (ISO 8601) Timestamp when this activity was updated. */
+    updatedAt?: string;
+    /** @deprecated USED IN ITEM BANK!! User that updated this. */
+    updatedBy?: User;
+    /** @deprecated USED IN ITEM BANK!! (ISO 8601) Timestamp when this activity was created. */
+    createdAt?: string;
+    /** @deprecated USED IN ITEM BANK!! User that created this item. */
+    createdBy?: User;
+    /** @deprecated USED IN ITEM BANK!! User that published this item. */
+    publishedBy?: User;
+    /** @deprecated USED IN ITEM BANK!! (ISO 8601) Timestamp when this activity was published. */
+    publishedAt?: string;
+    /** @deprecated I think you need to go in `.settings` instead for this... */
+    nextOnlyNavigation?: boolean | null;
 }
+
+// Utility type to get overlapping keys between two types
+type OverlappingKeys<T, U> = keyof T & keyof U;
+
+// Utility type that causes a compile error if there are overlaps
+type AssertNoOverlap<T, U> = OverlappingKeys<T, U> extends never 
+  ? never 
+  : true;
+
+/** Usage - this will cause a TypeScript error if there are overlaps */
+const checkIfThereAreAnyOverlaps: never = true as AssertNoOverlap<ActivityDoc, ActivityMetadata>;
+if (!checkIfThereAreAnyOverlaps) console.log("OVERLAP DETECTED");

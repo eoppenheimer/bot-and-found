@@ -1,4 +1,5 @@
 export {abItemMetaModel} from "./abItemMeta";
+export {abItemCommitModel} from "./abItemCommits";
 export {activityMetaModel} from "./activityMeta";
 export {activityCommitModel} from "./activityCommits";
 export {collectionMetaModel} from "./collectionMeta";

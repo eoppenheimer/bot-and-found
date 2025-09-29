@@ -53,15 +53,19 @@ export interface BulletList {
     /** Type of content. */
     type: "bullet_list";
     /** Content sinkhole. */
-    content: BulletItem[];
+    content: (BulletItem | ContentField)[];
 }
 
 /** Individual bullet of a list. */
 export interface BulletItem {
     /** Type of content. */
     type: "list_item";
-    /** Content sinkhole. */
-    content: ParagraphElement[];
+    /** Content sinkhole.
+     * 
+     * Note: It is VERY UNLIKELY that this will yield another `BulletList`.
+     * 
+     * While it is technically able to occur, I generally advise against worrying about this. It can only happen in the teacher tips anyways. */
+    content: (BulletList | ParagraphElement | ContentText)[];
 }
 
 /** Details of paragraph. */
@@ -73,7 +77,7 @@ export interface ParagraphElement {
 }
 
 /** Begininng of markdown for a paragraph. */
-export type ContentField = ContentMathQuill | ContentText | AnnotationToken | InterpretiveToken | InlineMathToken;
+export type ContentField = ContentMathQuill | ContentText | AnnotationToken | InterpretiveToken | InlineMathToken | ImageContent;
 
 
 /** MathQuill to render LaTeX math. */
@@ -83,7 +87,7 @@ export interface ContentMathQuill {
     /** Content sinkhole. */
     content: ContentText[];
     /** List of possible styles, including underlined, bold, or italicized. */
-    marks?: MarkStyle[];
+    marks?: MarkText[];
 }
 
 /** Content text of an annotation token. */
@@ -137,7 +141,7 @@ export interface AnnotationAttributes {
     isInvalid: boolean;
 }
 
-/** Content text of a pargraph. */
+/** Content text of a paragraph. */
 export interface ContentText {
     /** Type of content. */
     type: "text";
@@ -154,6 +158,8 @@ export type MarkText = MarkHyperlink | MarkStyle | MarkColor;
 export interface MarkStyle {
     /** Type of style. */
     type: "em" | "strong" | "underline";
+    /** @deprecated There shouldn't be any reason to call on this. */
+    attrs?: object;
 }
 
 /** Markup for hyperlink. */
@@ -177,7 +183,23 @@ export interface Hyperlink {
     target: string;
 }
 
-/** Details of color */
+/** Content text of a paragraph. */
+export interface ImageContent {
+    /** Type of content. */
+    type: "image";
+    /** The attributes of the image used here. */
+    attrs?: ImageContentAttribute;
+    /** List of possible styles, including underlined, bold, or italicized. */
+    marks?: MarkText[];
+}
+
+export interface ImageContentAttribute {
+    src: string;
+    alt?: string | null;
+    title?: string | null;
+}
+
+/** Details of color. */
 export interface Color {
     /** Hex code of a color. @example 'rgb(0, 105, 228)' @example '#a3f9bc' */
     hex: string;

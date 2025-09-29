@@ -1,15 +1,12 @@
 import { ObjectId, Document, Timestamp } from "mongodb";
 import { MongoModel } from "./Model";
-import { AuthorGroupAccess, StandardsAlignment } from "../../types";
-
+import { AuthorGroupAccess, StandardsAlignment, ActivityMetadata } from "../../types";
 
 interface UserReference {
     id: ObjectId;
 }
 
-type Grade = "K" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "11" | "12";
-
-export interface IABItemMeta extends Document {
+export interface IABItemMeta {
     _id: ObjectId;
     _ts?: Timestamp;
     createdBy: UserReference;
@@ -22,12 +19,10 @@ export interface IABItemMeta extends Document {
     authorGroupAccess?: AuthorGroupAccess | null;
     standardsAlignment?: StandardsAlignment[] | null;
     isReleased?: boolean;
-    copiedFromActivityId?: ObjectId;
-    deleted?: boolean;
-    grades?: Grade[];
-    topics?: string[];
     itemType?: "reference";
     referenceItemID?: string;
+    deleted?: boolean;
+    copiedFromActivityId?: ObjectId;
 }
 
 
