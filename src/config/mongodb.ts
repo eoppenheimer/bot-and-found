@@ -24,7 +24,6 @@ class MongoDBConnection {
         await client.connect();
         this.db = client.db("classroom-devci");
 
-
         console.log(`MongoDB is connected at ${MONGODB_URI_DEVCI}`);
     }
 
@@ -33,6 +32,10 @@ class MongoDBConnection {
             throw new Error("Attempted to run MongoDBConnection.getDb() before establishing a connection. MongoDB is not connected.");
         }
         return this.db;
+    }
+
+    get isConnected() {
+        return !!this.db;
     }
 
     public collection<T extends Document>(name: string): Collection<T> {
