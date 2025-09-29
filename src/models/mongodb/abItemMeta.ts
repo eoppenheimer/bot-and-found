@@ -1,29 +1,49 @@
 import { ObjectId, Document } from "mongodb";
 import { MongoModel } from "./Model";
+import { AuthorGroupAccess } from "./activityMeta";
+
+interface MongoTimestamp {
+    t: number;
+    i: number;
+}
 
 interface StandardsAlignment {
-    id: string;
+    id: number;
     name: string;
-    description: string;
-    stateId: number,
-    standardId: string;
-    category: string;
+    description?: string;
+    stateId?: number;
+    legacyStandardSet?: "TEKS" | "CCSS" | "NY";
+    standardId?: string | number;
+    category: "buildingOn" | "addressing" | "assessing" | "buildingToward";
 }
 
 interface UserReference {
     id: ObjectId;
 }
 
-interface IABItemMeta extends Document {
+type Grade = "K" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "11" | "12";
+
+export interface IABItemMeta extends Document {
     _id: ObjectId;
+    _ts?: {
+        $timestamp: MongoTimestamp;
+    };
     createdBy: UserReference;
-    draftUpdatedBy: UserReference;
+    draftUpdatedBy: UserReference | string[];
     publishedBy: UserReference;
     commitId: ObjectId;
     createdAt: Date;
     draftUpdatedAt: Date;
     publishedAt: Date;
-    standardsAlignment?: StandardsAlignment[];
+    authorGroupAccess?: AuthorGroupAccess | null;
+    standardsAlignment?: StandardsAlignment[] | null;
+    isReleased?: boolean;
+    copiedFromActivityId?: ObjectId;
+    deleted?: boolean;
+    grades?: Grade[];
+    topics?: string[];
+    itemType?: "reference";
+    referenceItemID?: string;
 }
 
 

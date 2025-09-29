@@ -5,6 +5,7 @@
         "docker": "docker build -t eoppenheimer/bot-and-found:latest . && docker compose up"
     },
     "dependencies": {
+        "@desmodder/graph-state": "^0.2.3",
         "better-sqlite3": "^12.4.1",
         "dotenv": "^17.2.2",
         "esbuild": "^0.25.10",

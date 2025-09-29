@@ -40,14 +40,20 @@ interface CurriculumLocation {
     }
 }
 
-interface AuthorGroupAccess {
+export interface AuthorGroupAccess {
     "adm-sandbox"?: true;
+    "caminos"?: true;
     "math-core-k-5"?: true;
     "math-core-6-12"?: true;
     "math-desmos-6-a1"?: true;
+    "math-supplemental"?: true;
     "ela-k-5"?: true;
+    "ela-6-12"?: true;
     "math-assessment"?: true;
     "free-content"?: true;
+    "free-content-amplify"?: true;
+    "science-core-k-5"?: true;
+    "pd-design"?: true;
 }
 
 interface SourceItemsRollup {
@@ -57,7 +63,7 @@ interface SourceItemsRollup {
     itemType?: "reference";
 }
 
-export interface IActivityMeta {
+export interface IActivityMeta extends Document {
     _id: ObjectId;
     user: UserReference;
     ancestors?: Ancestor[];
