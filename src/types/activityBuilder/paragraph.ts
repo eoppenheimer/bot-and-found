@@ -9,8 +9,8 @@
 export interface Paragraph {
     /** Beginning of the content sinkhole. */
     content: ContentStart;
-    /** Schema key. Use `"document"` for inside activites. Otherwise use `"heading"` and `"section"` for collection dividers. */
-    schemaKey: "document" | "heading" | "section";
+    /** Schema key. Use `"document"` for inside activites. Use `"heading"` and `"section"` for collection dividers. Use `"lesson"` for activity commits. */
+    schemaKey: "document" | "heading" | "section" | "lesson";
     /** Version number of the paragraph. */
     version: number;
 }
@@ -24,7 +24,7 @@ export interface ContentStart {
     /** Type of content. This can only be `"doc"` from the looks of it. */
     type: "doc";
     /** Content sinkhole. */
-    content: ContentElement[];
+    content?: ContentElement[];
 }
 
 /** Descends. */
@@ -42,8 +42,8 @@ export interface Heading {
 
 /** Attributes of `Heading`. */
 export interface HeadingAttributes {
-    /** 1 is biggest, 2 is semi big. */
-    level: 1 | 2;
+    /** 1 is biggest. 2 is semi big. 3 is even smaller, although I have only discovered it within lesson plans. */
+    level: 1 | 2 | 3;
     /** How to align the heading. If `undefined` then assume `"left"`. */
     alignment?: "center" | "left" | "right";
 }

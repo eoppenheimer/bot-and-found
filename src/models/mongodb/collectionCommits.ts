@@ -1,11 +1,6 @@
-import { ObjectId, Document } from "mongodb";
+import { ObjectId, Document, Timestamp } from "mongodb";
 import { MongoModel } from "./Model";
 import { Paragraph } from "../../types";
-
-interface MongoTimestamp {
-    t: number;
-    i: number;
-}
 
 interface UserReference {
     id: ObjectId;
@@ -46,9 +41,7 @@ type Item = ItemCollectionSectionDivider | ItemCollectionActivity | ItemSubcolle
 export interface ICollectionCommit extends Document {
     _id: ObjectId;
     user?: UserReference;
-    _ts: {
-        $timestamp: MongoTimestamp;
-    };
+    _ts?: Timestamp;
     color: "blue" | "teal" | "orange" | "purple" | "coral" | "pink" | "green";
     description: Partial<Paragraph>;
     metaId: ObjectId;

@@ -1,21 +1,7 @@
-import { ObjectId, Document } from "mongodb";
+import { ObjectId, Document, Timestamp } from "mongodb";
 import { MongoModel } from "./Model";
-import { AuthorGroupAccess } from "./activityMeta";
+import { AuthorGroupAccess, StandardsAlignment } from "../../types";
 
-interface MongoTimestamp {
-    t: number;
-    i: number;
-}
-
-interface StandardsAlignment {
-    id: number;
-    name: string;
-    description?: string;
-    stateId?: number;
-    legacyStandardSet?: "TEKS" | "CCSS" | "NY";
-    standardId?: string | number;
-    category: "buildingOn" | "addressing" | "assessing" | "buildingToward";
-}
 
 interface UserReference {
     id: ObjectId;
@@ -25,9 +11,7 @@ type Grade = "K" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | 
 
 export interface IABItemMeta extends Document {
     _id: ObjectId;
-    _ts?: {
-        $timestamp: MongoTimestamp;
-    };
+    _ts?: Timestamp;
     createdBy: UserReference;
     draftUpdatedBy: UserReference | string[];
     publishedBy: UserReference;

@@ -1,1 +1,1 @@
-export { abItemMetaModel, activityMetaModel, collectionMetaModel, collectionCommitModel } from "./mongodb";
+export { abItemMetaModel, activityMetaModel, activityCommitModel, collectionMetaModel, collectionCommitModel } from "./mongodb";

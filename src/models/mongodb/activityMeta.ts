@@ -1,10 +1,6 @@
-import { ObjectId, Document } from "mongodb";
+import { ObjectId, Document, Timestamp } from "mongodb";
 import { MongoModel } from "./Model";
-
-interface MongoTimestamp {
-    t: number;
-    i: number;
-}
+import { ActivityMetadata, AuthorGroupAccess, LicenseAccess } from "../../types";
 
 interface UserReference {
     id: string;
@@ -15,7 +11,7 @@ interface Ancestor {
     _id: ObjectId;
     user: UserReference;
     licenses?: License[];
-    licenseAccess?: "preview" | null
+    licenseAccess?: LicenseAccess;
 }
 
 interface License {
@@ -40,67 +36,19 @@ interface CurriculumLocation {
     }
 }
 
-export interface AuthorGroupAccess {
-    "adm-sandbox"?: true;
-    "caminos"?: true;
-    "math-core-k-5"?: true;
-    "math-core-6-12"?: true;
-    "math-desmos-6-a1"?: true;
-    "math-supplemental"?: true;
-    "ela-k-5"?: true;
-    "ela-6-12"?: true;
-    "math-assessment"?: true;
-    "free-content"?: true;
-    "free-content-amplify"?: true;
-    "science-core-k-5"?: true;
-    "pd-design"?: true;
-}
-
-interface SourceItemsRollup {
-    itemMetaId: string;
-    itemCommitId: string;
-    stepId: string;
-    itemType?: "reference";
-}
-
-export interface IActivityMeta extends Document {
+export interface IActivityMeta extends ActivityMetadata, Document {
     _id: ObjectId;
     user: UserReference;
     ancestors?: Ancestor[];
-    _ts?: {
-        $timestamp: MongoTimestamp;
-    };
+    _ts?: Timestamp;
     deleted?: true;
-    permissionToShare: boolean | null;
-    licenses?: License[];
-    activityLicenses?: License[];
-    licenseAccess?: string;
-    activityRetailAssetIds?: string[];
     authorTags?: AuthorTag[]
-    teamDesmosAuthored?: boolean;
     commitId?: ObjectId;
     edit_ts?: Date;
-    publishedTimestamp?: Date;
-    authorGroupAccess?: AuthorGroupAccess | null;
-    editionId?: string;
-    spam?: boolean;
     markedSpamOn?: Date;
-    subject?: string;
-    searchable?: boolean;
-    isReviewedNotSpam?: boolean;
-    retailAssetIds?: string[];
-    screenLicenseAccess?: string | null;
-    sourceItemsRollup?: SourceItemsRollup[];
-    spamConfidenceLevel?: string;
-    numInstances: number;
-    collectionHierarchy?: string[][];
-    routedADMId?: string;
-    curriculumLocation?: CurriculumLocation;
     parentActivityCommitId?: ObjectId;
     parentActivityMetaId?: ObjectId;
     rootActivityMetaId?: ObjectId;
-    collaborators?: string[];
-    subjectArea?: "6-12";
 }
 
 class ActivityMetaModel extends MongoModel<IActivityMeta> {}

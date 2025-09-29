@@ -3,8 +3,8 @@
  * @author {Ezra Oppenheimer}
  */
 
-import type {Paragraph} from "./paragraph";
-import type {PolypadState} from "./polypad";
+import {Paragraph} from "./paragraph";
+import {PolypadState} from "./polypad";
 import {GraphState} from "@desmodder/graph-state";
 
 /** Activity identifier received after creating a new activity. */

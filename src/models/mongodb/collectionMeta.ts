@@ -1,11 +1,6 @@
-import { ObjectId, Document } from "mongodb";
+import { ObjectId, Document, Timestamp } from "mongodb";
 import { MongoModel } from "./Model";
-import { AuthorGroupAccess } from "./activityMeta";
-
-interface MongoTimestamp {
-    t: number;
-    i: number;
-}
+import { AuthorGroupAccess } from "../../types";
 
 type Grade = "K" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "11" | "12";
 
@@ -19,9 +14,7 @@ export interface ICollectionMeta extends Document {
     _id: ObjectId;
     user: UserReference;
     sharing: "shared-link" | "private" | "book" | "featured";
-    _ts?: {
-        $timestamp: MongoTimestamp;
-    };
+    _ts?: Timestamp;
     edit_ts?: Date;
     commitId: ObjectId;
     pinnedNumber: number;
