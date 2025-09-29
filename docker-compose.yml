@@ -1,0 +1,15 @@
+services:
+    app:
+        image: eoppenheimer/bot-and-found:latest
+        ports:
+            - '8234:8080'
+        environment:
+
+            # Express Session
+            SESSION_SECRET: ${SESSION_SECRET:-Express Session Secret Key}
+
+            # MongoDB Keys
+            MONGODB_URI_DEVCI: ${MONGODB_URI_DEVCI:-MongoDB URI for DevCI}
+
+        volumes:
+            - ./database:/database

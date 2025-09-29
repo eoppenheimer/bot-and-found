@@ -1,0 +1,1 @@
+export { pruneJSON } from "./node";

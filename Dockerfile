@@ -5,12 +5,11 @@ FROM node:24-slim
 WORKDIR /app
 
 # Copy the app package and package-lock.json file
-COPY ./app/package*.json ./
+COPY ./package*.json ./
 
 RUN npm install
 
-
-COPY ./app/ .
+COPY ./ .
 
 ENV PORT=8080
 
