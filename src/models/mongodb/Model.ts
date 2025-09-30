@@ -1,8 +1,8 @@
 
-import { mongoConnection, ObjectId } from "../../config/mongodb";
+import { mongoConnection, ObjectId } from "../../config";
 import { Collection, Filter, FindOptions, Document } from "mongodb";
 
-/** Creates a model template to be used across databases. */
+/** Creates a model template to be used across Mongo databases. */
 export abstract class MongoModel<T extends Document> {
 
     /** The name of the MongoDB collection. */

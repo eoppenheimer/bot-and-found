@@ -1,0 +1,1 @@
+export {activityConfigModel} from "./activityConfigs";

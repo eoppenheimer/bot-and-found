@@ -1,11 +1,12 @@
 {
     "scripts": {
-        "build": "esbuild src/server.ts --outfile=dist/server.js --target=es2022 --platform=node --bundle --minify;",
+        "build": "esbuild src/server.ts --outfile=dist/server.js --target=es2022 --platform=node --minify --bundle --packages=external",
         "start": "npm run build && node ./dist/server.js",
         "docker": "docker build -t eoppenheimer/bot-and-found:latest . && docker compose up"
     },
     "dependencies": {
         "@desmodder/graph-state": "^0.2.3",
+        "@types/better-sqlite3": "^7.6.13",
         "better-sqlite3": "^12.4.1",
         "dotenv": "^17.2.2",
         "esbuild": "^0.25.10",
@@ -16,7 +17,6 @@
         "typescript-eslint": "^8.44.1"
     },
     "devDependencies": {
-        "@types/better-sqlite3": "^7.6.13",
         "@types/express": "^5.0.3",
         "@types/express-session": "^1.18.2",
         "@types/mongodb": "^4.0.6",

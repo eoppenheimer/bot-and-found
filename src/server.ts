@@ -2,8 +2,8 @@ import app from "./app";
 import dotenv from "dotenv";
 import fs from "fs/promises";
 import promptSync from "prompt-sync";
-import {mongoConnection, ObjectId} from "./config";
-import { abItemCommitModel, abItemMetaModel, activityCommitModel, activityMetaModel, collectionCommitModel, collectionMetaModel } from "./models";
+import {mongoConnection, ObjectId, sqliteConnection} from "./config";
+import { activityConfigModel, abItemCommitModel, abItemMetaModel, activityCommitModel, activityMetaModel, collectionCommitModel, collectionMetaModel } from "./models";
 dotenv.config();
 
 
@@ -11,10 +11,21 @@ const prompt = promptSync();
 
 const PORT = process.env.PORT || 8080;
 
+
+
 app.listen(PORT, async () => {
     console.log(`Server is running on http://localhost:${PORT}`);
-    
 
+    //sqliteConnection.createActivity("65f1f34d235403ee0c6c7deb", "65f1f34d235403ee0c6c7deb", new Date(Date.now()), {hello: 4, nope: true});
+
+    const myId = new ObjectId();
+
+    //const result = sqliteConnection.createActivity(myId.id, myId.id, new Date(Date.now()), {hello: 4, nope: true});
+
+    activityConfigModel.findById(myId.id);
+    //console.log(sqliteConnection.getActivityById(myId.id));
+    
+    return;
     const SIZE = 1;
 
     let i = 0;

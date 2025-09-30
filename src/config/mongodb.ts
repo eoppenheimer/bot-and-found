@@ -1,4 +1,6 @@
+import dotenv from "dotenv";
 import { MongoClient, Db, Collection } from "mongodb";
+dotenv.config();
 
 class MongoDBConnection {
     private static instance: MongoDBConnection;
@@ -24,7 +26,7 @@ class MongoDBConnection {
         await client.connect();
         this.db = client.db("classroom-devci");
 
-        console.log(`MongoDB is connected at ${MONGODB_URI_DEVCI}`);
+        console.log(`✅ MongoDB connected at ${MONGODB_URI_DEVCI}`);
     }
 
     public getDb(): Db {
