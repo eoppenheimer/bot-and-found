@@ -18,11 +18,32 @@ app.listen(PORT, async () => {
 
     //sqliteConnection.createActivity("65f1f34d235403ee0c6c7deb", "65f1f34d235403ee0c6c7deb", new Date(Date.now()), {hello: 4, nope: true});
 
-    const myId = new ObjectId();
+    const myId = new ObjectId("65f1f34d235403ee0c6c7dec");
+    const myId2 = new ObjectId("65f1f34d235403ee0c6c7deb");
 
     //const result = sqliteConnection.createActivity(myId.id, myId.id, new Date(Date.now()), {hello: 4, nope: true});
 
-    activityConfigModel.findById(myId.id);
+    try {
+        activityConfigModel.create({
+            id: myId.id,
+            commitId: myId.id,
+            timestamp: new Date(Date.now()),
+            config: {howdy: 4, nope: false},
+        });
+    }
+
+    catch (err) {
+        console.error(err);
+    }
+
+
+    //console.log(activityConfigModel.findById(myId.id));
+
+    for (const hi of activityConfigModel.findAllById([myId.id,myId2.id])) {
+        console.log(hi);
+    }
+
+    
     //console.log(sqliteConnection.getActivityById(myId.id));
     
     return;

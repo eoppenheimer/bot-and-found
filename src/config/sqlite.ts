@@ -20,6 +20,7 @@ class SQLiteConnection {
     private constructor() {
         const fileName = path.join(SQLITE_PATH!);
         this.db = new Database(fileName);
+        this.db.pragma("journal_mode = WAL");
         this.initTables();
         console.log("✅ SQLite connected");
     }

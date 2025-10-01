@@ -1,1 +1,2 @@
-export {activityConfigModel} from "./activityConfigs";
+export { Blob } from "./Model";
+export { activityConfigModel } from "./activityConfigs";

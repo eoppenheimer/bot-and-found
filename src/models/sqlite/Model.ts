@@ -1,11 +1,31 @@
 import { sqliteConnection } from "../../config";
 
-export type BindType = StringConstructor | ObjectConstructor | DateConstructor | NumberConstructor | BufferConstructor;
 
-export type BindSatisfies = Record<string, BindType>
+/** SQLite3 BLOB type as a buffer. */
+export type Blob = Uint8Array<ArrayBufferLike>;
+
+/** These are the types that I have programmed switches to be fed into SQLite. The first element outlines its constructor type, and the second dicates whether it is optional or not. */
+export type BindType = [
+    NumberConstructor | StringConstructor | BigInt64ArrayConstructor | BufferConstructor | DateConstructor | ObjectConstructor,
+    boolean
+];
+
+/** This is the genuine value that is stored after realizing a bind. */
+type BindRealized = InstanceType<BindType[0]> | undefined;
+
+
+/** Check if the bind argument satisfies TypeScript. ie. must be a record of each constructor and whether they are optional or not. */
+export type _CheckIfSatisfiesBindings = Record<string, BindType>
+
+
+/** SQLite3 can only bind numbers, strings, bigints, buffers, and null. */
+type SQLiteCompatible = number | string | bigint | Uint8Array<ArrayBufferLike> | null;
+
+/** This is an output that SQLite will always return to us directly from the database. */
+type SQLiteEntry<T> = Record<keyof T, SQLiteCompatible>
 
 /** Creates a model template to be used across Mongo databases. */
-export abstract class SQLiteModel<T> {
+export abstract class SQLiteModel<T extends Record<string, any>> {
 
     /** The name of the SQLite table. */
     protected tableName: string;
@@ -13,112 +33,223 @@ export abstract class SQLiteModel<T> {
     /** The output types of each value. */
     protected binds: Record<keyof T, BindType>;
 
+    protected keys: (keyof T)[];
+
     /** The connection pointer. */
     protected db;
 
     /**
      * Creates a SQLite model, with lazy methods that use connection.
      * @param tableName The name of the SQLite table.
+     * @param binds The output types of each value, accompanied by boolean encoding whether they are mandatory or optional.
      */
     constructor(tableName: string, binds: Record<keyof T, BindType>) {
         this.db = sqliteConnection.getDb();
         this.tableName = tableName;
         this.binds = binds;
+        this.keys = Object.keys(this.binds) as (keyof typeof this.binds)[];
     }
 
     /**
-     * Creates a cursor for a filter that can be used to iterate over results from SQLite
-     * @param filter The filter predicate. If unspecified, then all documents in the collection will match the predicate
-     * @param options Optional settings for the command
+     * Returns a satinized object that is safe to save in the database. This will prevent SQLite3 from yelling at us in the future.
+     * @param input The object we are sanitizing.
+     * @returns An equivalent object using the correct SQLite3 values.
      */
-    async find(filter: Filter<T> = {}, options?: FindOptions) {
-        return collection.find(filter, options);
-    }
+    private sanitizeInput(input: Record<string, any>): SQLiteEntry<T> {
+
+        /** This is an object that has been binded to the correct SQLite values. */
+        const sanitized: {[key: string]: SQLiteCompatible} = {};
+
+        /** These are the keys we are looking to sanitize. */
+        const keysInQuestion = Object.keys(input);
+
+        /** Any keys that might be missing. */
+        const missingKeys = keysInQuestion.filter(x=>!this.keys.includes(x));
+        if (missingKeys.length > 0) {
+            throw Error(`KeyError: Supplied unknown keys ${JSON.stringify(missingKeys)} to table ${this.tableName}, but only accepts ${JSON.stringify(this.keys)}.`);
+        }
+
+        if (keysInQuestion.length !== this.keys.length) {
+            throw Error(`KeyError: Supplied ${keysInQuestion.length} key(s) to table ${this.tableName} ${JSON.stringify(keysInQuestion)}, but expected ${this.keys.length} ${JSON.stringify(this.keys)}.`);
+        }
 
 
-    /**
-     * Fetches the first document that matches the SQLite BLOB id.
-     * @param id The Buffer used to access the ID.
-     */
-    findById(id: Blob) {
+        for (const key of keysInQuestion) {
+            const valueInQuestion = input[key];
 
-        const stmt = this.db.prepare(`SELECT * FROM ${this.tableName} WHERE id = ?`);
-        const result = stmt.get(id) as undefined | Record<keyof T, number | string | Buffer | undefined>;
+            let valueSanitized: SQLiteCompatible;
 
-        if (result === undefined) return undefined;
-
-        const output = {} as Partial<T>;
-
-        for (const key of Object.keys(this.binds) as (keyof typeof this.binds)[]) {
-            
-            const value = result[key];
-
-            if (value === undefined) {
-                output[key] = undefined;
-                continue;
+            if (!valueInQuestion) {
+                valueSanitized = null;
             }
+            else if (typeof valueInQuestion === "number" || typeof valueInQuestion === "string" || typeof valueInQuestion === "bigint") {
+                valueSanitized = valueInQuestion;
+            }
+            else if (Buffer.isBuffer(valueInQuestion)) {
+                if (valueInQuestion.byteLength !== 12) throw Error(`SQLite3 TypeError: Non compatible buffer size ${valueInQuestion.byteLength} was supplied in ${this.tableName} -> ${key}. Must be size 12.`);
+                valueSanitized = valueInQuestion;
+            }
+            else if (valueInQuestion instanceof Date) {
+                valueSanitized = valueInQuestion.toISOString();
+            }
+            else if (typeof valueInQuestion === "object") {
+                valueSanitized = JSON.stringify(valueInQuestion, null, 0);
+            }
+            else {
+                throw Error(`SQLite3 TypeError: Non compatible type \`${typeof valueInQuestion}\` was supplied in ${this.tableName} -> ${key}.`);
+            }
+            
+            sanitized[key] = valueSanitized;
+        }
+        
+        return sanitized as SQLiteEntry<T>;
+    }
+
+    /**
+     * Returns a satinized object that is safe to extract from the database. This will prevent TypeScript from yelling at us in the future.
+     * @param outputAsUnknown The SQLite3 object we are sanitizing.
+     * @returns An equivalent object using the correct TypeScript values.
+     */
+    private sanitizeOutput(outputAsUnknown: unknown): T | undefined {
+
+        if (!outputAsUnknown) return undefined;
+
+        /** The SQLite3 object we are sanitizing, with proper type casting. */
+        const output = outputAsUnknown as SQLiteEntry<T>;
+
+        /** This is an object that has been binded to the correct SQLite values. */
+        const sanitized: {[key: string]: BindRealized} = {};
+
+        /** These are the keys we are looking to sanitize. */
+        const keysInQuestion = Object.keys(output);
+
+        /** Any keys that might be missing. */
+        const missingKeys = keysInQuestion.filter(x=>!this.keys.includes(x));
+        if (missingKeys.length > 0) {
+            throw Error(`KeyError: Received unknown keys ${JSON.stringify(missingKeys)} from table ${this.tableName}, but should only return ${JSON.stringify(this.keys)}.`);
+        }
+
+        if (keysInQuestion.length !== this.keys.length) {
+            throw Error(`KeyError: Received ${keysInQuestion.length} key(s) from table ${this.tableName} ${JSON.stringify(keysInQuestion)}, but expected ${this.keys.length} ${JSON.stringify(this.keys)}.`);
+        }
+
+
+        for (const key of keysInQuestion) {
+            const valueInQuestion = output[key];
 
             const bind = this.binds[key];
 
-            if (bind === String) {
-                if (typeof value !== "string") throw Error(`Expected a string for column ${JSON.stringify(key)}. Got ${typeof value} instead.`);
-                output[key] = value;
+            let valueSanitized: BindRealized;
+
+            if (valueInQuestion === null) {
+                // Check if this is an optional criteria.
+                if (bind[1] === true) throw Error(`SQLite3 TypeError: Expected a mandatory value in ${this.tableName} -> ${key}, but received \`null\` instead.`);
+                valueSanitized = undefined;
             }
-            else if (bind === Number) {
-                if (typeof value !== "number") throw Error(`Expected a number for column ${JSON.stringify(key)}. Got ${typeof value} instead.`);
-                output[key] = undefined;
+            else if (bind[0] === Number) {
+                if (typeof valueInQuestion !== "number") throw Error(`SQLite3 TypeError: Expected to receive \`number\` according to bindings in ${this.tableName} -> ${key}, but received \`${typeof valueInQuestion}\` instead.`);
+                valueSanitized = valueInQuestion;
             }
-            else if (bind === Buffer) {
-                if (!Buffer.isBuffer(value)) throw Error(`Expected a buffer for column ${JSON.stringify(key)}. Got ${value} instead.`);
+            else if (bind[0] === String) {
+                if (typeof valueInQuestion !== "string") throw Error(`SQLite3 TypeError: Expected to receive \`string\` according to bindings in ${this.tableName} -> ${key}, but received \`${typeof valueInQuestion}\` instead.`);
+                valueSanitized = valueInQuestion;
+            }
+            else if (bind[0] === BigInt64Array) {
+                if (typeof valueInQuestion !== "bigint") throw Error(`SQLite3 TypeError: Expected to receive \`bigint\` according to bindings in ${this.tableName} -> ${key}, but received \`${typeof valueInQuestion}\` instead.`);
+                valueSanitized = valueInQuestion;
+            }
+            else if (bind[0] === Buffer) {
+                if (!Buffer.isBuffer(valueInQuestion)) throw Error(`SQLite3 TypeError: Expected to receive \`Buffer\` according to bindings in ${this.tableName} -> ${key}, but received \`${typeof valueInQuestion}\` instead.`);
+                if (valueInQuestion.byteLength !== 12) throw Error(`SQLite3 TypeError: Non compatible buffer size ${valueInQuestion.byteLength} was received in ${this.tableName} -> ${key}. Must be size 12.`);
+                valueSanitized = valueInQuestion;
+            }
+            else if (bind[0] === Date) {
+                if (typeof valueInQuestion !== "string") throw Error(`SQLite3 TypeError: Expected to receive \`string\` according to bindings in ${this.tableName} -> ${key}, but received \`${typeof valueInQuestion}\` instead.`);
+                valueSanitized = new Date(valueInQuestion);
+            }
+            else if (bind[0] === Object) {
+                if (typeof valueInQuestion !== "string") throw Error(`SQLite3 TypeError: Expected to receive \`string\` according to bindings in ${this.tableName} -> ${key}, but received \`${typeof valueInQuestion}\` instead.`);
+                try {
+                    valueSanitized = JSON.parse(valueInQuestion);
+                }
+                catch (err) {
+                    throw Error(`SQLite3 TypeError: Expected to receive valid JSON according to bindings in ${this.tableName} -> ${key}, but failed to parse.\n${err}`);
+                }
+            }
+            else {
+                throw Error(`SQLite3 TypeError: Provided undefined bind type \`${bind}\` was supplied in ${this.tableName} -> ${key}.`);
             }
             
-            
-
-
-
-            console.log(value);
+            sanitized[key] = valueSanitized;
         }
-
         
+        return sanitized as T;
+    }
+    
 
-        return {
-            id: output.id,
-            commit_id: output.commit_id,
-            edit_ts: new Date(output.edit_ts),
-            config: JSON.parse(output.config)
-        };
+    /**
+     * Saves a single entry into the SQLite3 database.
+     * @param entry The entry to be inserted into the database.
+     */
+    create(entry: T) {
+
+        /** The satinized entry. */
+        const sanitized = this.sanitizeInput(entry);
+
+        /** These are the stringified column names that are supplied into the INSERT statement. */
+        const keys = this.keys.join(",");
+
+        /** These are the stringified "?" symbols that are supplied into the VALUES statement. */
+        const placeholders = this.keys.map(() => "?").join(",");
+
+        /** The SQL statement to create a new single entry. */
+        const stmt = this.db.prepare(`INSERT INTO ${this.tableName} (${keys})\nVALUES (${placeholders})`);
+
+        /** The SQL compatible values that are to be inserted. */
+        const insertValues: SQLiteCompatible[] = this.keys.map(key => sanitized[key]);
+
+        /** The creation result. */
+        const result = stmt.run(...insertValues);
+
+        return result;
     }
 
     /**
-     * Fetches the first document that matches the filter
-     * @param filter Query for find Operation
+     * Fetches the first entry that matches the SQLite ID.
+     * @param id The BLOB used to access the ID.
      */
-    async findOne(filter: Filter<T>) {
-        return await collection.findOne(filter);
+    findById(id: Blob) {
+
+        /** The SQL statement to find a new single entry. */
+        const stmt = this.db.prepare(`SELECT * FROM ${this.tableName} WHERE id = ?`);
+        
+        /** The creation result. */
+        const result = stmt.get(id);
+
+        /** The sanitized result. */
+        const sanitized = this.sanitizeOutput(result);
+
+        return sanitized;
     }
 
-    getActivityById(id: Blob) {
-        const stmt = this.db.prepare("SELECT * FROM activity_configs WHERE id = ?");
-        const output = stmt.get(id) as {
-            id: Blob,
-            commit_id: Blob,
-            edit_ts: string,
-            config: string
-        };
+    /**
+     * Creates a generator that can be used to iterate over a list of results from SQLite.
+     * @param idList The list of IDs that you want to filter.
+     */
+    *findAllById(idList: Blob[]) {
 
-        return {
-            id: output.id,
-            commit_id: output.commit_id,
-            edit_ts: new Date(output.edit_ts),
-            config: JSON.parse(output.config)
-        };
-    }
-
-    getActivityAll(idList: Blob[]) {
+        /** These are the stringified "?" symbols that are supplied into the VALUES statement. */
         const placeholders = idList.map(() => "?").join(",");
-        const query = `SELECT * FROM activity_configs WHERE id IN (${placeholders})`;
-        const stmt = this.db.prepare(query);
-        return stmt.iterate(...idList);
+
+        /** The SQL statement to find all matches of entries. */
+        const stmt = this.db.prepare(`SELECT * FROM ${this.tableName} WHERE id IN (${placeholders})`);
+        
+        // Use SQLite's iteration feature to stagger this to only a few entries.
+        for (const result of stmt.iterate(...idList)) {
+
+            // Sanitize the single result and yield it.
+            yield this.sanitizeOutput(result);
+        }
     }
 
 }

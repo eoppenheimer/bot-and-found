@@ -1,6 +1,6 @@
 {
     "scripts": {
-        "build": "esbuild src/server.ts --outfile=dist/server.js --target=es2022 --platform=node --minify --bundle --packages=external",
+        "build": "esbuild src/server.ts --outfile=dist/server.js --target=es2022 --platform=node --bundle --packages=external",
         "start": "npm run build && node ./dist/server.js",
         "docker": "docker build -t eoppenheimer/bot-and-found:latest . && docker compose up"
     },

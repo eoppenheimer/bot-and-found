@@ -1,23 +1,20 @@
-import { sqliteConnection } from "../../config";
-import { SQLiteModel, BindType, BindSatisfies } from "./Model";
-
-type Blob = Uint8Array<ArrayBufferLike>;
-
+import { SQLiteModel, _CheckIfSatisfiesBindings, Blob } from "./Model";
 
 interface IActivityConfigModel {
-    id: number;
-    commitId: number;
+    id: Blob;
+    commitId: Blob;
     timestamp: Date;
-    config: boolean;
+    config: object;
 }
+
+const activityConfigBindings = {
+    id: [Buffer, true],
+    commitId: [Buffer, true],
+    timestamp: [Date, false],
+    config: [Object, true]
+}  satisfies _CheckIfSatisfiesBindings;
 
 
 class ActivityConfigModel extends SQLiteModel<IActivityConfigModel> {}
 
-export const activityConfigModel = new ActivityConfigModel("activityConfigs", {
-    id: Buffer,
-    commitId: Buffer,
-    timestamp: Date,
-    config: Object
-} satisfies BindSatisfies);
-
+export const activityConfigModel = new ActivityConfigModel("activityConfigs", activityConfigBindings);
