@@ -8,3 +8,6 @@ Models should NEVER call Controllers (would create circular dependencies).
 
 If you had to pick one: Controllers could call Models, but it's bad practice.
 */
+
+//export { DatabaseManagementService } from "./databaseManagement";
+export { DatabaseManagementService } from "./databaseManagement";

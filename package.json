@@ -1,8 +1,8 @@
 {
     "scripts": {
-        "build": "esbuild src/server.ts --outfile=dist/server.js --target=es2022 --platform=node --bundle --packages=external",
+        "build": "esbuild src/server.ts --outfile=dist/server.js --loader:.txt=text --loader:.sql=text --target=es2022 --platform=node --bundle --packages=external",
         "start": "npm run build && node ./dist/server.js",
-        "docker": "docker build -t eoppenheimer/bot-and-found:latest . && docker compose up"
+        "docker": "tsc --noEmit && docker build -t eoppenheimer/bot-and-found:latest . && docker compose up"
     },
     "dependencies": {
         "@desmodder/graph-state": "^0.2.3",

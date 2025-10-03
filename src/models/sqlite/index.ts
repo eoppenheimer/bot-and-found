@@ -1,2 +1,4 @@
 export { Blob } from "./Model";
-export { activityModel } from "./activities";
+export { IActivityModel, activityModel } from "./activities";
+export { IABItemModel, abItemModel } from "./abItems";
+export { IGoogleSpreadsheetModel, googleSpreadsheetModel } from "./googleSpreadsheets";

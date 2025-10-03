@@ -1,10 +1,11 @@
 import dotenv from "dotenv";
 import Database from "better-sqlite3";
 import path from "path";
+import initTableSQL from "./initTable.sql";
 dotenv.config();
 
-const {SQLITE_PATH} = process.env;
-if (!SQLITE_PATH) throw Error("Missing SQLITE_PATH.");
+const {DATABASE_PATH} = process.env;
+if (!DATABASE_PATH) throw Error("Missing DATABASE_PATH.");
 
 class SQLiteConnection {
     private static instance: SQLiteConnection;
@@ -18,30 +19,15 @@ class SQLiteConnection {
     }
 
     private constructor() {
-        const fileName = path.join(SQLITE_PATH!);
+        const fileName = path.join(DATABASE_PATH!, "botAndFound.db");
         this.db = new Database(fileName);
         this.db.pragma("journal_mode = WAL");
         this.initTables();
-        console.log("✅ SQLite connected");
+        console.log(`✅ SQLite connected at ${DATABASE_PATH}`);
     }
 
     private initTables() {
-        const sql = `
-CREATE TABLE IF NOT EXISTS activities (
-    id BLOB PRIMARY KEY,
-    idCommit BLOB,
-    timestamp TEXT,
-    categories TEXT,
-    metaSnapshot TEXT,
-    commitSnapshot TEXT
-) WITHOUT ROWID;
-
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL
-);
-        `;
+        const sql = initTableSQL;
         this.db.exec(sql);
     }
 

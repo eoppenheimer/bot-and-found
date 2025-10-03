@@ -4,3 +4,7 @@ export {activityMetaModel} from "./activityMeta";
 export {activityCommitModel} from "./activityCommits";
 export {collectionMetaModel} from "./collectionMeta";
 export {collectionCommitModel} from "./collectionCommits";
+export {IActivityMeta} from "./activityMeta";
+export {IActivityCommit} from "./activityCommits";
+export {IABItemMeta} from "./abItemMeta";
+export {IABItemCommit} from "./abItemCommits";

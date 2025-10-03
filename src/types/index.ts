@@ -1,2 +1,3 @@
 export { RouteFunction } from "./requests";
 export { ActivityCommit, ActivityConfiguration, ActivityMetadata, AuthorGroupAccess, License, LicenseAccess, StandardsAlignment, Paragraph, Step } from "./activityBuilder";
+export { GoogleSpreadsheet } from "./googleSpreadsheet";

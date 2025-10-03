@@ -11,5 +11,8 @@ services:
             # MongoDB Keys
             MONGODB_URI_DEVCI: ${MONGODB_URI_DEVCI:-MongoDB URI for DevCI}
 
+            # SQLite Path
+            DATABASE_PATH: ${DATABASE_PATH:-SQLite Path for Storage}
+
         volumes:
             - ./database:/database

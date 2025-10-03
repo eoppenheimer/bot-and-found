@@ -1,13 +1,13 @@
-import { IActivityMeta, IActivityCommit } from "../mongodb";
+import { IABItemMeta, IABItemCommit } from "../mongodb";
 import { SQLiteModel, _CheckIfSatisfiesBindings, Blob } from "./Model";
 
-export interface IActivityModel {
+export interface IABItemModel {
     id: Blob;
     idCommit: Blob;
     timestampSnapshot: Date;
     categories: string[];
-    metaSnapshot: IActivityMeta;
-    commitSnapshot: IActivityCommit;
+    metaSnapshot: IABItemMeta;
+    commitSnapshot: IABItemCommit;
 }
 
 const bindings = {
@@ -20,6 +20,6 @@ const bindings = {
 }  satisfies _CheckIfSatisfiesBindings;
 
 
-class ActivityModel extends SQLiteModel<IActivityModel> {}
+class ABItemModel extends SQLiteModel<IABItemModel> {}
 
-export const activityModel = new ActivityModel("activities", bindings);
+export const abItemModel = new ABItemModel("abItems", bindings);

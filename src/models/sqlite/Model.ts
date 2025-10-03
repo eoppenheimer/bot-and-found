@@ -3,7 +3,7 @@ import { EJSON } from "bson";
 
 
 /** SQLite3 BLOB type as a buffer. */
-export type Blob = Uint8Array<ArrayBufferLike>;
+export type Blob = Uint8Array;
 
 /** These are the types that I have programmed switches to be fed into SQLite. The first element outlines its constructor type, and the second dicates whether it is optional or not. */
 export type BindType = [
@@ -20,21 +20,22 @@ export type _CheckIfSatisfiesBindings = Record<string, BindType>
 
 
 /** SQLite3 can only bind numbers, strings, bigints, buffers, and null. */
-type SQLiteCompatible = number | string | bigint | Uint8Array<ArrayBufferLike> | null;
+type SQLiteCompatible = number | string | bigint | Blob | null;
 
 /** This is an output that SQLite will always return to us directly from the database. */
 type SQLiteEntry<T> = Record<keyof T, SQLiteCompatible>
 
 /** Creates a model template to be used across Mongo databases. */
-export abstract class SQLiteModel<T extends Record<string, any>> {
+export abstract class SQLiteModel<T extends Record<string, any> & { id: SQLiteCompatible }> {
 
-    /** The name of the SQLite table. */
-    protected tableName: string;
+    /** The name of the SQLite3 table. */
+    readonly tableName: string;
 
     /** The output types of each value. */
     protected binds: Record<keyof T, BindType>;
 
-    protected keys: (keyof T)[];
+    /** The column names of the SQLite3 table. */
+    readonly keys: ReadonlyArray<keyof T>;
 
     /** The connection pointer. */
     protected db;
@@ -220,10 +221,55 @@ export abstract class SQLiteModel<T extends Record<string, any>> {
     }
 
     /**
-     * Fetches the first entry that matches the SQLite ID.
-     * @param id The BLOB used to access the ID.
+     * Overwrites a single entry in the SQLite3 database.
+     * @param entry The entry to be inserted or replaced in the database.
      */
-    findOne(id: Blob) {
+    overwrite(entry: T) {
+
+        /** The satinized entry. */
+        const sanitized = this.sanitizeInput(entry);
+
+        /** These are the stringified column names that are supplied into the INSERT OR REPLACE statement. */
+        const keys = this.keys.join(",");
+
+        /** These are the stringified "?" symbols that are supplied into the VALUES statement. */
+        const placeholders = this.keys.map(() => "?").join(",");
+
+        /** The SQL statement to overwrite an existing entry or create a new one. */
+        const stmt = this.db.prepare(`INSERT OR REPLACE INTO ${this.tableName} (${keys})\nVALUES (${placeholders})`);
+
+        /** The SQL compatible values that are to be inserted or replaced. */
+        const insertValues: SQLiteCompatible[] = this.keys.map(key => sanitized[key]);
+
+        /** The overwrite result. */
+        const result = stmt.run(...insertValues);
+
+        return result;
+    }
+
+
+    /**
+     * Checks if an entry with the specified ID already exists in the SQLite3 database.
+     * @param id The ID to check for existence in the database.
+     * @returns `true` if the ID exists, `false` otherwise.
+     */
+    exists(id: T["id"]): boolean {
+
+        /** The SQL statement to check if an entry with the given ID exists. */
+        const stmt = this.db.prepare(`SELECT 1 FROM ${this.tableName} WHERE id = ? LIMIT 1`);
+
+        /** The query result - will be undefined if no row is found. */
+        const result = stmt.get(id);
+
+        /** Returns true if a row was found, false otherwise. */
+        return result !== undefined;
+    }
+
+    /**
+     * Fetches the first entry that matches the SQLite ID.
+     * @param id The ID used to access the entry.
+     */
+    findOne(id: T["id"]) {
 
         /** The SQL statement to find a new single entry. */
         const stmt = this.db.prepare(`SELECT * FROM ${this.tableName} WHERE id = ?`);
@@ -238,13 +284,17 @@ export abstract class SQLiteModel<T extends Record<string, any>> {
     }
 
     /**
-     * Creates a generator that can be used to iterate over a list of results from SQLite.
+     * Creates a generator that can be used to iterate over a list of results from SQLite3, provided a list of IDs.
      * @param idList The list of IDs that you want to filter.
      * @param filter Optional argument to pick only a select few columns.
      */
-    *find<U extends (keyof T)[] | undefined = undefined>(idList: Blob[], filter?: U):
+    *findMany<U extends (keyof T)[] | undefined = undefined>(idList: T["id"][], filter?: U):
     Generator<GetModel<T,U>> {
 
+        // Return early if no IDs are provided. //
+        if (idList.length === 0) return;
+
+        /** The column names to filter to. Defaults to `*` when selecting all columns. */
         const columnNames = filter === undefined ? "*" : filter.join(",");
 
         /** These are the stringified "?" symbols that are supplied into the VALUES statement. */
@@ -262,25 +312,86 @@ export abstract class SQLiteModel<T extends Record<string, any>> {
     }
 
     /**
-     * Creates a generator that can be used to iterate over a list of results from SQLite.
-     * @param idList The list of IDs that you want to filter.
+     * Creates a generator that can be used to iterate over all entries that exist in an SQLite table.
+     * @param filter Optional argument to pick only a select few columns.
      */
-    *findPropertyById(property: keyof T | "*" = "*", idList: Blob[]) {
+    *findAll<U extends (keyof T)[] | undefined = undefined>(filter?: U):
+    Generator<GetModel<T,U>> {
 
-        /** These are the stringified "?" symbols that are supplied into the VALUES statement. */
-        const placeholders = idList.map(() => "?").join(",");
+        /** The column names to filter to. Defaults to `*` when selecting all columns. */
+        const columnNames = filter === undefined ? "*" : filter.join(",");
 
         /** The SQL statement to find all matches of entries. */
-        const stmt = this.db.prepare(`SELECT ${String(property)} FROM ${this.tableName} WHERE id IN (${placeholders})`);
+        const stmt = this.db.prepare(`SELECT ${columnNames} FROM ${this.tableName}`);
         
         // Use SQLite's iteration feature to stagger this to only a few entries.
-        for (const result of stmt.iterate(...idList)) {
+        for (const result of stmt.iterate()) {
 
             // Sanitize the single result and yield it.
-            yield result;
+            yield this.sanitizeOutput(result, filter === undefined) as GetModel<T,U>;
         }
     }
+
+    /**
+     * Deletes a single entry with the specified ID from the SQLite3 database.
+     * @param id The ID of the entry to be deleted from the database.
+     * @returns The deletion result containing information about the operation.
+     */
+    deleteOne(id: T["id"]) {
+
+        /** The SQL statement to delete a single entry with the specified ID. */
+        const stmt = this.db.prepare(`DELETE FROM ${this.tableName} WHERE id = ?`);
+
+        /** The deletion result. */
+        const result = stmt.run(id);
+
+        return result;
+    }
+
+    /**
+     * Deletes multiple entries with the specified IDs from the SQLite3 database.
+     * @param idList The array of IDs to be deleted from the database.
+     * @returns The deletion result containing information about the operation.
+     */
+    deleteMany(idList: T["id"][]) {
+
+        // Return early if no IDs are provided.
+        if (idList.length === 0) {
+            return { changes: 0, lastInsertRowid: 0 };
+        }
+
+        /** These are the stringified "?" symbols that are supplied into the IN statement. */
+        const placeholders = idList.map(() => "?").join(",");
+
+        /** The SQL statement to delete multiple entries with the specified IDs. */
+        const stmt = this.db.prepare(`DELETE FROM ${this.tableName} WHERE id IN (${placeholders})`);
+
+        /** The deletion result. */
+        const result = stmt.run(...idList);
+
+        return result;
+    }
+
+    /**
+     * Deletes all entries from the SQLite3 database table.
+     * @param confirm Set to true to confirm deletion of all entries.
+     * @returns The deletion result containing information about the operation.
+     */
+    deleteAll(confirm: boolean = false) {
+
+        // Safety check to prevent accidental deletion of all data.
+        if (!confirm) throw new Error("Must confirm deletion by passing `true` as parameter.");
+
+        /** The SQL statement to delete all entries from the table. */
+        const stmt = this.db.prepare(`DELETE FROM ${this.tableName}`);
+
+        /** The deletion result. */
+        const result = stmt.run();
+
+        return result;
+    }
+
 }
 
-/** This will first check if `U` is undefined. If so, then it will return `T` plainly. However, if `U` exists, then it will Pick from `T` only the keys that are found in `U`  */
+/** This will first check if `U` is undefined. If so, then it will return `T` plainly. However, if `U` exists, then it will Pick from `T` only the keys that are found in `U`.  */
 type GetModel<T,U> = U extends undefined ? T : Pick<T, U extends (keyof T)[] ? U[number] : never>

@@ -1,2 +1,2 @@
-export { abItemMetaModel, abItemCommitModel, activityMetaModel, activityCommitModel, collectionMetaModel, collectionCommitModel } from "./mongodb";
-export { Blob, activityModel } from "./sqlite";
+export { IActivityMeta, IActivityCommit, IABItemMeta, IABItemCommit, abItemMetaModel, abItemCommitModel, activityMetaModel, activityCommitModel, collectionMetaModel, collectionCommitModel } from "./mongodb";
+export { IActivityModel, IABItemModel, IGoogleSpreadsheetModel, Blob, activityModel, abItemModel, googleSpreadsheetModel } from "./sqlite";
