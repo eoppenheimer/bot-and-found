@@ -27,11 +27,13 @@ class SQLiteConnection {
 
     private initTables() {
         const sql = `
-CREATE TABLE IF NOT EXISTS activityConfigs (
+CREATE TABLE IF NOT EXISTS activities (
     id BLOB PRIMARY KEY,
-    commitId BLOB,
+    idCommit BLOB,
     timestamp TEXT,
-    config TEXT
+    categories TEXT,
+    metaSnapshot TEXT,
+    commitSnapshot TEXT
 ) WITHOUT ROWID;
 
 CREATE TABLE IF NOT EXISTS users (

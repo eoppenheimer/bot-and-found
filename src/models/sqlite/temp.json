@@ -1,0 +1,56 @@
+{
+  "_id": {
+    "$oid": "65f1f34d235403ee0c6c7deb"
+  },
+  "createdBy": {
+    "id": {
+      "$oid": "65c2a22d55a4982801efc493"
+    }
+  },
+  "draftUpdatedBy": [
+    {
+      "$oid": "65c2a22d55a4982801efc493"
+    }
+  ],
+  "publishedBy": {
+    "id": {
+      "$oid": "65c2a22d55a4982801efc493"
+    }
+  },
+  "copiedFromActivityId": {
+    "$oid": "65f1f328681c9c11710f9814"
+  },
+  "standardsAlignment": [
+    {
+      "id": 10105,
+      "name": "CCSS.MATH.CONTENT.1.G.A.2",
+      "description": "Compose two-dimensional shapes (rectangles, squares, trapezoids, triangles, half-circles, and quarter-circles) or three-dimensional shapes (cubes, right rectangular prisms, right circular cones, and right circular cylinders) to create a composite shape, and compose new shapes from the composite shape.",
+      "stateId": 22,
+      "standardId": 10105,
+      "category": "addressing"
+    },
+    {
+      "id": 8046,
+      "name": "NY-1.G.1",
+      "description": "Distinguish between defining attributes versus non-defining attributes for a wide variety of shapes. Build and/or draw shapes to possess defining attributes.",
+      "stateId": 30,
+      "standardId": 8046,
+      "category": "addressing"
+    }
+  ],
+  "authorGroupAccess": {
+    "math-core-6-12": true
+  },
+  "commitId": {
+    "$oid": "65f1f34d67dcef310f5e0a9c"
+  },
+  "createdAt": {
+    "$date": "2024-03-13T18:41:17.630Z"
+  },
+  "draftUpdatedAt": {
+    "$date": "2024-03-13T18:41:25.978Z"
+  },
+  "publishedAt": {
+    "$date": "2024-03-13T18:41:17.630Z"
+  }
+}

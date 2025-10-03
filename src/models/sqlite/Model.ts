@@ -1,4 +1,5 @@
 import { sqliteConnection } from "../../config";
+import { EJSON } from "bson";
 
 
 /** SQLite3 BLOB type as a buffer. */
@@ -79,7 +80,7 @@ export abstract class SQLiteModel<T extends Record<string, any>> {
 
             let valueSanitized: SQLiteCompatible;
 
-            if (!valueInQuestion) {
+            if (valueInQuestion === undefined || valueInQuestion === null) {
                 valueSanitized = null;
             }
             else if (typeof valueInQuestion === "number" || typeof valueInQuestion === "string" || typeof valueInQuestion === "bigint") {
@@ -93,8 +94,9 @@ export abstract class SQLiteModel<T extends Record<string, any>> {
                 valueSanitized = valueInQuestion.toISOString();
             }
             else if (typeof valueInQuestion === "object") {
-                valueSanitized = JSON.stringify(valueInQuestion, null, 0);
+                valueSanitized = EJSON.stringify(valueInQuestion, undefined, 0);
             }
+            
             else {
                 throw Error(`SQLite3 TypeError: Non compatible type \`${typeof valueInQuestion}\` was supplied in ${this.tableName} -> ${key}.`);
             }
@@ -108,9 +110,10 @@ export abstract class SQLiteModel<T extends Record<string, any>> {
     /**
      * Returns a satinized object that is safe to extract from the database. This will prevent TypeScript from yelling at us in the future.
      * @param outputAsUnknown The SQLite3 object we are sanitizing.
+     * @param checkFull Check if this is expected to return all # of columns. When false, there is a slightly higher chance for bad datasets to be ignored.
      * @returns An equivalent object using the correct TypeScript values.
      */
-    private sanitizeOutput(outputAsUnknown: unknown): T | undefined {
+    private sanitizeOutput(outputAsUnknown: unknown, checkFull=true): T | undefined {
 
         if (!outputAsUnknown) return undefined;
 
@@ -123,14 +126,16 @@ export abstract class SQLiteModel<T extends Record<string, any>> {
         /** These are the keys we are looking to sanitize. */
         const keysInQuestion = Object.keys(output);
 
-        /** Any keys that might be missing. */
-        const missingKeys = keysInQuestion.filter(x=>!this.keys.includes(x));
-        if (missingKeys.length > 0) {
-            throw Error(`KeyError: Received unknown keys ${JSON.stringify(missingKeys)} from table ${this.tableName}, but should only return ${JSON.stringify(this.keys)}.`);
-        }
+        if (checkFull) {
+            /** Any keys that might be missing. */
+            const missingKeys = keysInQuestion.filter(x=>!this.keys.includes(x));
+            if (missingKeys.length > 0) {
+                throw Error(`KeyError: Received unknown keys ${JSON.stringify(missingKeys)} from table ${this.tableName}, but should only return ${JSON.stringify(this.keys)}.`);
+            }
 
-        if (keysInQuestion.length !== this.keys.length) {
-            throw Error(`KeyError: Received ${keysInQuestion.length} key(s) from table ${this.tableName} ${JSON.stringify(keysInQuestion)}, but expected ${this.keys.length} ${JSON.stringify(this.keys)}.`);
+            if (keysInQuestion.length !== this.keys.length) {
+                throw Error(`KeyError: Received ${keysInQuestion.length} key(s) from table ${this.tableName} ${JSON.stringify(keysInQuestion)}, but expected ${this.keys.length} ${JSON.stringify(this.keys)}.`);
+            }
         }
 
 
@@ -170,7 +175,7 @@ export abstract class SQLiteModel<T extends Record<string, any>> {
             else if (bind[0] === Object) {
                 if (typeof valueInQuestion !== "string") throw Error(`SQLite3 TypeError: Expected to receive \`string\` according to bindings in ${this.tableName} -> ${key}, but received \`${typeof valueInQuestion}\` instead.`);
                 try {
-                    valueSanitized = JSON.parse(valueInQuestion);
+                    valueSanitized = EJSON.parse(valueInQuestion);
                 }
                 catch (err) {
                     throw Error(`SQLite3 TypeError: Expected to receive valid JSON according to bindings in ${this.tableName} -> ${key}, but failed to parse.\n${err}`);
@@ -218,7 +223,7 @@ export abstract class SQLiteModel<T extends Record<string, any>> {
      * Fetches the first entry that matches the SQLite ID.
      * @param id The BLOB used to access the ID.
      */
-    findById(id: Blob) {
+    findOne(id: Blob) {
 
         /** The SQL statement to find a new single entry. */
         const stmt = this.db.prepare(`SELECT * FROM ${this.tableName} WHERE id = ?`);
@@ -235,21 +240,47 @@ export abstract class SQLiteModel<T extends Record<string, any>> {
     /**
      * Creates a generator that can be used to iterate over a list of results from SQLite.
      * @param idList The list of IDs that you want to filter.
+     * @param filter Optional argument to pick only a select few columns.
      */
-    *findAllById(idList: Blob[]) {
+    *find<U extends (keyof T)[] | undefined = undefined>(idList: Blob[], filter?: U):
+    Generator<GetModel<T,U>> {
+
+        const columnNames = filter === undefined ? "*" : filter.join(",");
 
         /** These are the stringified "?" symbols that are supplied into the VALUES statement. */
         const placeholders = idList.map(() => "?").join(",");
 
         /** The SQL statement to find all matches of entries. */
-        const stmt = this.db.prepare(`SELECT * FROM ${this.tableName} WHERE id IN (${placeholders})`);
+        const stmt = this.db.prepare(`SELECT ${columnNames} FROM ${this.tableName} WHERE id IN (${placeholders})`);
         
         // Use SQLite's iteration feature to stagger this to only a few entries.
         for (const result of stmt.iterate(...idList)) {
 
             // Sanitize the single result and yield it.
-            yield this.sanitizeOutput(result);
+            yield this.sanitizeOutput(result, filter === undefined) as GetModel<T,U>;
         }
     }
 
+    /**
+     * Creates a generator that can be used to iterate over a list of results from SQLite.
+     * @param idList The list of IDs that you want to filter.
+     */
+    *findPropertyById(property: keyof T | "*" = "*", idList: Blob[]) {
+
+        /** These are the stringified "?" symbols that are supplied into the VALUES statement. */
+        const placeholders = idList.map(() => "?").join(",");
+
+        /** The SQL statement to find all matches of entries. */
+        const stmt = this.db.prepare(`SELECT ${String(property)} FROM ${this.tableName} WHERE id IN (${placeholders})`);
+        
+        // Use SQLite's iteration feature to stagger this to only a few entries.
+        for (const result of stmt.iterate(...idList)) {
+
+            // Sanitize the single result and yield it.
+            yield result;
+        }
+    }
 }
+
+/** This will first check if `U` is undefined. If so, then it will return `T` plainly. However, if `U` exists, then it will Pick from `T` only the keys that are found in `U`  */
+type GetModel<T,U> = U extends undefined ? T : Pick<T, U extends (keyof T)[] ? U[number] : never>

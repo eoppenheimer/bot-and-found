@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import fs from "fs/promises";
 import promptSync from "prompt-sync";
 import {mongoConnection, ObjectId, sqliteConnection} from "./config";
-import { activityConfigModel, abItemCommitModel, abItemMetaModel, activityCommitModel, activityMetaModel, collectionCommitModel, collectionMetaModel } from "./models";
+import { activityModel, abItemCommitModel, abItemMetaModel, activityCommitModel, activityMetaModel, collectionCommitModel, collectionMetaModel } from "./models";
 dotenv.config();
 
 
@@ -12,46 +12,12 @@ const prompt = promptSync();
 const PORT = process.env.PORT || 8080;
 
 
-
 app.listen(PORT, async () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 
-    //sqliteConnection.createActivity("65f1f34d235403ee0c6c7deb", "65f1f34d235403ee0c6c7deb", new Date(Date.now()), {hello: 4, nope: true});
-
-    const myId = new ObjectId("65f1f34d235403ee0c6c7dec");
-    const myId2 = new ObjectId("65f1f34d235403ee0c6c7deb");
-
-    //const result = sqliteConnection.createActivity(myId.id, myId.id, new Date(Date.now()), {hello: 4, nope: true});
-
-    try {
-        activityConfigModel.create({
-            id: myId.id,
-            commitId: myId.id,
-            timestamp: new Date(Date.now()),
-            config: {howdy: 4, nope: false},
-        });
-    }
-
-    catch (err) {
-        console.error(err);
-    }
-
-
-    //console.log(activityConfigModel.findById(myId.id));
-
-    for (const hi of activityConfigModel.findAllById([myId.id,myId2.id])) {
-        console.log(hi);
-    }
-
-    
-    //console.log(sqliteConnection.getActivityById(myId.id));
-    
-    return;
-    const SIZE = 1;
-
     let i = 0;
-    const collected: any[] = [];
-    for await (const metadata of await abItemMetaModel.find({})) {
+    for await (const metadata of await activityMetaModel.find({})) {
+        break;
         i++;
 
         if (metadata.deleted) {
@@ -60,39 +26,76 @@ app.listen(PORT, async () => {
         };
 
         const {commitId} = metadata;
-
         if (!commitId) {
             console.log(/fucked up, continuing/);
             continue;
         }
 
-        const commit = await abItemCommitModel.findOne({_id: commitId});
+        const commit = await activityCommitModel.findOne({_id: commitId});
         if (!commit) {
             console.log(/fucked up, continuing/);
             continue;
         }
 
-        if (!(commit.steps.length > 0 && commit.steps[0].root.linearlayout.components.length > 0)) {
-            console.log(/skipping/);
-            continue;
-        }
 
-        if (i % SIZE === 0) {
-
-            await fs.writeFile("./dist/metadata.ts", `import { IABItemMeta } from "../src/models/mongodb/abItemMeta";
-const x = ${JSON.stringify(metadata,undefined,4)} satisfies IABItemMeta;`);
-
-            await fs.writeFile("./dist/commit.ts", `import { IABItemCommit } from "../src/models/mongodb/abItemCommits";
-const x = ${JSON.stringify(commit,undefined,4)} satisfies IABItemCommit;`);
-
-            await fs.writeFile("./dist/getActivityConfiguration.ts", `import { ActivityConfiguration } from "../src/types";
-const x = {} satisfies ActivityConfiguration;`);
+        try {
             
-            prompt(`${metadata._id} Wrote to file! Press Enter to proceed.`);
-            collected.length = 0;
+            activityModel.create({
+                id: metadata._id.id,
+                idCommit: commitId.id,
+                timestamp: commit.edit_ts,
+                categories: ["hello"],
+                metaSnapshot: metadata,
+                commitSnapshot: commit
+            });
         }
+        catch (err) {
+            console.log("failed to create", metadata._id.id, `${err}`);
+        }
+
+
+        console.log(metadata._id);
+        if (i > 25) break;
+    }
+
+    const ids = [];
+    const blobs = ids.map(x => (new ObjectId(x)).id);
+
+    console.time("begin");
+
+    
+    for (const entry of activityModel.find(blobs)) {
+    //for (const entry of activityModel.find(blobs, ["id", "idCommit", "timestamp", "categories"])) {
+        
+        continue;
+        const activity = entry.commitSnapshot.doc;
+
+        for (const step of activity.steps) {
+            for (const a of step.root.linearlayout.components) {
+                for (const b of a.linearlayout.components) {
+                    const text = b["exhibit/text"];
+                    if (text) {
+                        if (!text.text) continue;
+                        console.log(text.text);
+                    }
+                }
+            }
+        }
+        if (!entry) continue;
 
     }
+    console.timeEnd("begin");
+    /*
+    console.time("commitId");
+    for (const entry of activityConfigModel.findPropertyById("commitId",blobs)) {
+        if (!entry) continue;
+
+        
+        console.log(entry);
+    }
+    console.timeEnd("commitId");*/
+
+    console.log("done!");
 });
 
 setInterval(()=>{
