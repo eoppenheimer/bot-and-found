@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import fs from "fs/promises";
 import promptSync from "prompt-sync";
 import {mongoConnection, ObjectId, sqliteConnection} from "./config";
-import { activityModel, abItemCommitModel, abItemMetaModel, activityCommitModel, activityMetaModel, collectionCommitModel, collectionMetaModel, googleSpreadsheetModel } from "./models";
+import { activityModel } from "./models";
 import { DatabaseManagementService } from "./services";
 dotenv.config();
 
@@ -14,8 +14,10 @@ const PORT = process.env.PORT || 8080;
 
 const d = new DatabaseManagementService();
 
-d.updateGoogleSpreadsheets();
+d.updateNotion();
 app.listen(PORT, async () => {
+    mongoConnection.connect();
+    sqliteConnection.getDb();
     return;
     console.log(`Server is running on http://localhost:${PORT}`);
 
@@ -34,8 +36,8 @@ app.listen(PORT, async () => {
                 for (const b of a.linearlayout.components) {
                     const text = b["exhibit/text"];
                     if (text) {
-                        if (!text.text) continue;
-                        console.log(text.text);
+                        //if (!text.text) continue;
+                        //console.log(text.text);
                     }
                 }
             }

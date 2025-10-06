@@ -1,11 +1,9 @@
-import dotenv from "dotenv";
 import Database from "better-sqlite3";
 import path from "path";
 import initTableSQL from "./initTable.sql";
-dotenv.config();
 
 const {DATABASE_PATH} = process.env;
-if (!DATABASE_PATH) throw Error("Missing DATABASE_PATH.");
+if (!DATABASE_PATH) throw Error("Missing DATABASE_PATH from env file.");
 
 class SQLiteConnection {
     private static instance: SQLiteConnection;

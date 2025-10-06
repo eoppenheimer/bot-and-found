@@ -1,4 +1,5 @@
 import { GoogleSpreadsheetImportService } from "./GoogleSpreadsheetImportService";
+import { NotionImportService } from "./NotionImportService";
 
 
 
@@ -6,24 +7,19 @@ import { GoogleSpreadsheetImportService } from "./GoogleSpreadsheetImportService
 export class DatabaseManagementService {
     
     private googleSpreadsheetParser = new GoogleSpreadsheetImportService();
-    //private csvParser = new CsvParser();
-    //private validator = new DataValidator();
-    //private bulkInserter = new BulkInserter();
+    private notionParser = new NotionImportService();
 
-    /** This scans for any spreadsheet files and uploads them to the database. */
+    /** This scans for any Google Spreadsheet files and commits them to the database. */
     updateGoogleSpreadsheets() {
-        this.googleSpreadsheetParser.findSpreadsheetNames();
+        const folderPaths = this.googleSpreadsheetParser.getSpreadsheetPaths();
+        this.googleSpreadsheetParser.writeToDB(folderPaths);
     }
 
-    async getAllUsers(): Promise<IUser[]> {
-        return await this.userModel.find(); // Inherited method
+    /** This scans for any Notion files and commits them to the database. */
+    updateNotion() {
+        this.notionParser.writeBoostDevelopmentBoardToDB();
+        this.notionParser.writeMCLASSItemsDatabaseToDB();
     }
 
-    async getUserById(id: string): Promise<IUser | null> {
-        return await this.userModel.findById(id); // Inherited method
-    }
 
-    async getUserByEmail(email: string): Promise<IUser | null> {
-        return await this.userModel.findByEmail(email); // Custom method
-    }
 }

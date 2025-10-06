@@ -1,3 +1,7 @@
+import readline from "readline";
+import crypto from "crypto";
+import csv from "csv-parser";
+import fs from "fs";
 
 /**
  * Converts a JSON so that it is no longer cyclic. This way it can be successfully stringified.
@@ -115,4 +119,92 @@ export function pruneJSON(pruneThis: any, iterations=4) {
     }
 
     return pruneJSONInner(pruneThis);
+}
+
+
+/**
+ * Halts the server to ask for user input.
+ * @param query The question to appear on screen to ask the user.
+ * @returns The text that the user types into this field.
+ */
+export function prompt(query: string): Promise<string> {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+
+    return new Promise(resolve => rl.question(query, ans => {
+        rl.close();
+        resolve(ans);
+    }));
+}
+
+
+/**
+ * Create a hash function used to generate ids throughout.
+ * @param strings The strings to generate hash from.
+ * @url https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest
+ * @returns Hash of the supplied strings.
+ */
+export function generateHash(...strings: string[]) {
+    const secret = strings.join(" ");
+    const hash = crypto.createHmac("sha1", secret).update("I make hashes for Ezra").digest();
+    return hash;
+}
+
+/**
+ * Outputs a list of duplicates that appears in this list.
+ * @param array The array we want to find duplicates of. 
+ * @returns The duplicates of this array.
+ */
+export function findDuplicates<T>(array: T[]) {
+    const seen = new Map();
+    const duplicates: Set<T> = new Set();
+            
+    array.forEach(item => {
+        if (seen.has(item)) {
+            duplicates.add(item);
+        }
+        else {
+            seen.set(item, true);
+        }
+    });
+            
+    return Array.from(duplicates);
+}
+
+/**
+ * Returns a completed CSV file compiled into different columns, with the first row as the header.
+ * @param filePath The path to read the string at.
+ * @param PutYourInterfaceHere The output of the CSV should follow this type.
+ * @returns 
+ */
+export function parseCSV<PutYourInterfaceHere>(filePath: string) {
+
+    const results: PutYourInterfaceHere[] = [];
+
+    return new Promise<PutYourInterfaceHere[]>(resolve => {
+        fs.createReadStream(filePath)
+            .pipe(csv({
+                mapHeaders: ({ header }) => header.trim(),
+                mapValues: ({ value }) => value.trim()
+            }))
+            .on("data", (data: PutYourInterfaceHere) => results.push(data))
+            .on("end", () => {
+                resolve(results);
+            });
+    });
+}
+
+/** Shorthand to create for loops that retains the original TypeScript types. */
+export function entriesOf<T extends object>(object: T): [keyof T, T[keyof T]][] {
+    return Object.entries(object) as [keyof T, T[keyof T]][];
+}
+
+/** Shorthand to yield positive if a string exists include of an array. */
+export function arrayIncludes<T extends readonly string[]>(
+    value: string,
+    arr: T
+): value is T[number] {
+    return (arr as readonly string[]).includes(value);
 }

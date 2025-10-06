@@ -1,6 +1,4 @@
-import dotenv from "dotenv";
 import { MongoClient, Db, Collection } from "mongodb";
-dotenv.config();
 
 class MongoDBConnection {
     private static instance: MongoDBConnection;
@@ -20,7 +18,7 @@ class MongoDBConnection {
         if (this.db) return; // Already connected
 
         const {MONGODB_URI_DEVCI} = process.env;
-        if (!MONGODB_URI_DEVCI) throw Error("Missing MONGODB_URI_DEVCI.");
+        if (!MONGODB_URI_DEVCI) throw Error("Missing MONGODB_URI_DEVCI from env file.");
 
         const client = new MongoClient(MONGODB_URI_DEVCI);
         await client.connect();

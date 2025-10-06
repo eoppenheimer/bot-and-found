@@ -1,10 +1,6 @@
 import { sqliteConnection } from "../../config";
 import { EJSON } from "bson";
 
-
-/** SQLite3 BLOB type as a buffer. */
-export type Blob = Uint8Array;
-
 /** These are the types that I have programmed switches to be fed into SQLite. The first element outlines its constructor type, and the second dicates whether it is optional or not. */
 export type BindType = [
     NumberConstructor | StringConstructor | BigInt64ArrayConstructor | BufferConstructor | DateConstructor | ObjectConstructor,
@@ -20,7 +16,7 @@ export type _CheckIfSatisfiesBindings = Record<string, BindType>
 
 
 /** SQLite3 can only bind numbers, strings, bigints, buffers, and null. */
-type SQLiteCompatible = number | string | bigint | Blob | null;
+type SQLiteCompatible = number | string | bigint | Uint8Array | null;
 
 /** This is an output that SQLite will always return to us directly from the database. */
 type SQLiteEntry<T> = Record<keyof T, SQLiteCompatible>
@@ -84,11 +80,7 @@ export abstract class SQLiteModel<T extends Record<string, any> & { id: SQLiteCo
             if (valueInQuestion === undefined || valueInQuestion === null) {
                 valueSanitized = null;
             }
-            else if (typeof valueInQuestion === "number" || typeof valueInQuestion === "string" || typeof valueInQuestion === "bigint") {
-                valueSanitized = valueInQuestion;
-            }
-            else if (Buffer.isBuffer(valueInQuestion)) {
-                if (valueInQuestion.byteLength !== 12) throw Error(`SQLite3 TypeError: Non compatible buffer size ${valueInQuestion.byteLength} was supplied in ${this.tableName} -> ${key}. Must be size 12.`);
+            else if (typeof valueInQuestion === "number" || typeof valueInQuestion === "string" || typeof valueInQuestion === "bigint" || Buffer.isBuffer(valueInQuestion)) {
                 valueSanitized = valueInQuestion;
             }
             else if (valueInQuestion instanceof Date) {
@@ -166,7 +158,6 @@ export abstract class SQLiteModel<T extends Record<string, any> & { id: SQLiteCo
             }
             else if (bind[0] === Buffer) {
                 if (!Buffer.isBuffer(valueInQuestion)) throw Error(`SQLite3 TypeError: Expected to receive \`Buffer\` according to bindings in ${this.tableName} -> ${key}, but received \`${typeof valueInQuestion}\` instead.`);
-                if (valueInQuestion.byteLength !== 12) throw Error(`SQLite3 TypeError: Non compatible buffer size ${valueInQuestion.byteLength} was received in ${this.tableName} -> ${key}. Must be size 12.`);
                 valueSanitized = valueInQuestion;
             }
             else if (bind[0] === Date) {
@@ -203,7 +194,7 @@ export abstract class SQLiteModel<T extends Record<string, any> & { id: SQLiteCo
         const sanitized = this.sanitizeInput(entry);
 
         /** These are the stringified column names that are supplied into the INSERT statement. */
-        const keys = this.keys.join(",");
+        const keys = this.keys.map(key => `"${String(key).replace(/"/g, "\"\"")}"`).join(",");
 
         /** These are the stringified "?" symbols that are supplied into the VALUES statement. */
         const placeholders = this.keys.map(() => "?").join(",");
@@ -230,7 +221,7 @@ export abstract class SQLiteModel<T extends Record<string, any> & { id: SQLiteCo
         const sanitized = this.sanitizeInput(entry);
 
         /** These are the stringified column names that are supplied into the INSERT OR REPLACE statement. */
-        const keys = this.keys.join(",");
+        const keys = this.keys.map(key => `"${String(key).replace(/"/g, "\"\"")}"`).join(",");
 
         /** These are the stringified "?" symbols that are supplied into the VALUES statement. */
         const placeholders = this.keys.map(() => "?").join(",");

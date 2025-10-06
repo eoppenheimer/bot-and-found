@@ -1,1 +1,1 @@
-export { pruneJSON } from "./node";
+export { pruneJSON, generateHash } from "./node";

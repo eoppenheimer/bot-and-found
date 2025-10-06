@@ -1,2 +1,2 @@
 export { IActivityMeta, IActivityCommit, IABItemMeta, IABItemCommit, abItemMetaModel, abItemCommitModel, activityMetaModel, activityCommitModel, collectionMetaModel, collectionCommitModel } from "./mongodb";
-export { IActivityModel, IABItemModel, IGoogleSpreadsheetModel, Blob, activityModel, abItemModel, googleSpreadsheetModel } from "./sqlite";
+export { IActivityModel, IABItemModel, IGoogleSpreadsheetModel, INotionBPLDevelopmentBoardModel, INotionMCLASSItemsDatabaseModel, activityModel, abItemModel, googleSpreadsheetModel, notionBPLDevelopmentBoardModel, notionMCLASSItemsDatabaseModel } from "./sqlite";

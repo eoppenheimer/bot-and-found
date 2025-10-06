@@ -1,7 +1,9 @@
 import express from "express";
 import session from "express-session";
 import path from "path";
+import dotenv from "dotenv";
 import { adminRouter, dashboardRouter } from "./routes";
+dotenv.config();
 
 const app = express();
 

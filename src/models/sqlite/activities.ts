@@ -1,9 +1,9 @@
 import { IActivityMeta, IActivityCommit } from "../mongodb";
-import { SQLiteModel, _CheckIfSatisfiesBindings, Blob } from "./Model";
+import { SQLiteModel, _CheckIfSatisfiesBindings } from "./Model";
 
 export interface IActivityModel {
-    id: Blob;
-    idCommit: Blob;
+    id: Uint8Array;
+    idCommit: Uint8Array;
     timestampSnapshot: Date;
     categories: string[];
     metaSnapshot: IActivityMeta;
