@@ -14,9 +14,10 @@ const PORT = process.env.PORT || 8080;
 
 const d = new DatabaseManagementService();
 
-d.updateNotion();
+//d.updateNotion();
+d.updateMCLASS();
 app.listen(PORT, async () => {
-    mongoConnection.connect();
+    //mongoConnection.connect();
     sqliteConnection.getDb();
     return;
     console.log(`Server is running on http://localhost:${PORT}`);

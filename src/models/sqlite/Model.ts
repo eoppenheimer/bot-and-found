@@ -21,6 +21,11 @@ type SQLiteCompatible = number | string | bigint | Uint8Array | null;
 /** This is an output that SQLite will always return to us directly from the database. */
 type SQLiteEntry<T> = Record<keyof T, SQLiteCompatible>
 
+/** Converts a list of keys into a single comma seperated SQLite compatible query. */
+function convertToSQLKeys<T>(keys: ReadonlyArray<T>) {
+    return keys.map(key => `"${String(key).replace(/"/g, "\"\"")}"`).join(",");
+}
+
 /** Creates a model template to be used across Mongo databases. */
 export abstract class SQLiteModel<T extends Record<string, any> & { id: SQLiteCompatible }> {
 
@@ -194,7 +199,7 @@ export abstract class SQLiteModel<T extends Record<string, any> & { id: SQLiteCo
         const sanitized = this.sanitizeInput(entry);
 
         /** These are the stringified column names that are supplied into the INSERT statement. */
-        const keys = this.keys.map(key => `"${String(key).replace(/"/g, "\"\"")}"`).join(",");
+        const keys = convertToSQLKeys(this.keys);
 
         /** These are the stringified "?" symbols that are supplied into the VALUES statement. */
         const placeholders = this.keys.map(() => "?").join(",");
@@ -221,7 +226,7 @@ export abstract class SQLiteModel<T extends Record<string, any> & { id: SQLiteCo
         const sanitized = this.sanitizeInput(entry);
 
         /** These are the stringified column names that are supplied into the INSERT OR REPLACE statement. */
-        const keys = this.keys.map(key => `"${String(key).replace(/"/g, "\"\"")}"`).join(",");
+        const keys = convertToSQLKeys(this.keys);
 
         /** These are the stringified "?" symbols that are supplied into the VALUES statement. */
         const placeholders = this.keys.map(() => "?").join(",");
@@ -286,7 +291,7 @@ export abstract class SQLiteModel<T extends Record<string, any> & { id: SQLiteCo
         if (idList.length === 0) return;
 
         /** The column names to filter to. Defaults to `*` when selecting all columns. */
-        const columnNames = filter === undefined ? "*" : filter.join(",");
+        const columnNames = filter === undefined ? "*" : convertToSQLKeys(filter);
 
         /** These are the stringified "?" symbols that are supplied into the VALUES statement. */
         const placeholders = idList.map(() => "?").join(",");
@@ -310,7 +315,7 @@ export abstract class SQLiteModel<T extends Record<string, any> & { id: SQLiteCo
     Generator<GetModel<T,U>> {
 
         /** The column names to filter to. Defaults to `*` when selecting all columns. */
-        const columnNames = filter === undefined ? "*" : filter.join(",");
+        const columnNames = filter === undefined ? "*" : convertToSQLKeys(filter);
 
         /** The SQL statement to find all matches of entries. */
         const stmt = this.db.prepare(`SELECT ${columnNames} FROM ${this.tableName}`);

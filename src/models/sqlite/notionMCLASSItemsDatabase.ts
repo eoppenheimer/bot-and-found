@@ -6,7 +6,7 @@ export interface INotionMCLASSItemsDatabaseModel {
     "6-8 IC Nov 24": string;
     "A1/M1 24-25": string;
     "Answer": string;
-    "Answer Type": string;
+    "Answer Type": ""|"MC - Single"|"Math Inline"|"Math Input, 📈 Static Graph"|"Math Input"|"Interaction"|"MC - Multiple, 📈 Static Graph"|"MC - Single, 📈 Static Graph"|"Interaction, 📈 Interactive Graph"|"MC - Multiple"|"Interaction, MC - Single, 📈 Interactive Graph"|"Interaction, Math Input, 📈 Interactive Graph"|"Interaction, 📈 Polypad"|"Math Input, 📈 Interactive Graph"|"Table Input"|"Interaction, Math Input, 📈 Static Graph"|"Table Input, 📈 Interactive Graph"|"Table Input, 📈 Static Graph"|"MC - Single, Math Input"|"Interaction, MC - Single";
     "Assignee": string;
     "BOY 25 Short / Screener": string;
     "BOY FS Fall 24": string;

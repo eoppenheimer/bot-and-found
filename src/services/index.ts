@@ -1,7 +1,7 @@
 /*
-Correct flow: Controller → Service → Model
+Correct flow: Route → Controller → Service → Model
 
-Controllers call Services, Services call Models.
+Routes call Controllers, Controllers call Services, Services call Models.
 
 Controllers should never call Models directly (breaks separation of concerns).
 Models should NEVER call Controllers (would create circular dependencies).

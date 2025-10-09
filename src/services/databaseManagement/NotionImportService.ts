@@ -22,6 +22,12 @@ export class NotionImportService {
 
         const data = await parseCSV<Omit<INotionBPLDevelopmentBoardModel, "id"> & {id?: INotionBPLDevelopmentBoardModel["id"]}>(filePath);
 
+        const runtimeResult = {
+            changes: 0,
+            overwrites: 0,
+            added: 0,
+        };
+
         for (const entry of data) {
 
             if (!/^G[K1-8]\.U\d\.SU\d\.L\d\d$/.test(entry.Name)) {
@@ -33,12 +39,15 @@ export class NotionImportService {
 
             const alreadyExists = notionBPLDevelopmentBoardModel.exists(entry.id);
 
-            const verb = alreadyExists ? "Overwrote" : "Created";
+            if (alreadyExists) runtimeResult.overwrites++;
+            else runtimeResult.added++; 
             
             const result = notionBPLDevelopmentBoardModel.overwrite(entry as INotionBPLDevelopmentBoardModel);
 
-            console.log(verb, "from", JSON.stringify(filePath), "successfully.", result);
+            runtimeResult.changes++;
         }
+
+        console.log("Read from", JSON.stringify(filePath), "successfully.", runtimeResult);
         
     }
 
@@ -56,7 +65,7 @@ export class NotionImportService {
         for (const entry of data) {
 
             if (!entry["Item ID"]) {
-                console.log(/Skipping ID/, entry["Item ID"]);
+                console.log(/Skipping ID/, [entry["Item ID"]]);
                 continue;
             };
             
