@@ -350,17 +350,48 @@ export interface ImageComponent extends DefaultComponent {
     showBorder?: boolean;
 }
 
-export interface NoteComponent extends DefaultComponent {
+interface NoteComponentDefault extends DefaultComponent {
     text: string;
     background?: {type: "sticky" | "blue" | "taped" | "blank"};
     doc?: string;
-    noteType?: "note";
     readTextAloudMeta?: {
         audioUrl: string;
         sourceText: string;
         voice?: "Gigi" | "Hayden" | "Astrid";
     }
 }
+
+interface NoteComponentNote extends NoteComponentDefault {
+    noteType?: "note";
+}
+
+interface PublicationMetadata {
+    publicationId: string;
+    componentId: string;
+    componentIndex: number;
+    selectionPosition: {
+        start: {
+            offset: number;
+        };
+        end: {
+            offset: number;
+            paragraphNumber?: number;
+            sentenceNumber?: number;
+            
+        };
+    }
+}
+
+interface NoteComponentPassage extends NoteComponentDefault {
+    noteType?: "passage";
+    /** Only found in passage components! Use `ContentStart` when parsing to grab the title. */
+    title: string;
+    publicationMetadata: PublicationMetadata;
+    /** This overrides the entire paragraph numbering rule for this doc. */
+    removeParagraphNumbering?: boolean;
+}
+
+export type NoteComponent = NoteComponentNote | NoteComponentPassage;
 
 export interface OrderedListComponent extends DefaultComponent {
     items: object;

@@ -42,10 +42,15 @@ export interface Heading {
 
 /** Attributes of `Heading`. */
 export interface HeadingAttributes {
-    /** 1 is biggest. 2 is semi big. 3 is even smaller, although I have only discovered it within lesson plans. */
-    level: 1 | 2 | 3;
+    /**
+     * 1 is biggest. 2 is semi big. 3 is even smaller, although I have only discovered it within lesson plans.
+     * 
+     * Now what's even crazier is I found 4 used in a Passage component. I might as well assign `number` to this instead lol. */
+    level: 1 | 2 | 3 | 4;
     /** How to align the heading. If `undefined` then assume `"left"`. */
     alignment?: "center" | "left" | "right";
+    /** Only used in passage components. My guess is this accepts a CSS weight value. @example "700" */
+    fontWeight?: string | null;
 }
 
 /** Initializes a bullet list. */
@@ -68,12 +73,25 @@ export interface BulletItem {
     content: (BulletList | ParagraphElement | ContentText)[];
 }
 
+/** The attributes of a Paragraph element. */
+interface ParagraphAttribute {
+    alignment: "center" | "left" | "right";
+    bmcPosition?: {
+        numberingLevel: number;
+        index: number;
+    }
+    /** Remove the paragraph numbers while being displayed. */
+    removeParagraphNumber?: boolean;
+}
+
 /** Details of paragraph. */
 export interface ParagraphElement {
     /** Type of content. */
     type: "paragraph";
     /** Content sinkhole. */
     content?: ContentField[];
+    /** I've only seen this used inside a Paragraph component. It has things like its alignment, paragraph numbering status, and bmcPosition. */
+    attrs?: ParagraphAttribute;
 }
 
 /** Begininng of markdown for a paragraph. */
@@ -157,7 +175,7 @@ export type MarkText = MarkHyperlink | MarkStyle | MarkColor;
 /** Styles text as underlined, bold, or italicized. */
 export interface MarkStyle {
     /** Type of style. */
-    type: "em" | "strong" | "underline";
+    type: "em" | "strong" | "underline" | "label";
     /** @deprecated There shouldn't be any reason to call on this. */
     attrs?: object;
 }
