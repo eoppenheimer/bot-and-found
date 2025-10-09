@@ -353,7 +353,6 @@ export interface ImageComponent extends DefaultComponent {
 interface NoteComponentDefault extends DefaultComponent {
     text: string;
     background?: {type: "sticky" | "blue" | "taped" | "blank"};
-    doc?: string;
     readTextAloudMeta?: {
         audioUrl: string;
         sourceText: string;
@@ -363,6 +362,8 @@ interface NoteComponentDefault extends DefaultComponent {
 
 interface NoteComponentNote extends NoteComponentDefault {
     noteType?: "note";
+    /** Entry doc for standard note component. */
+    doc?: string;
 }
 
 interface PublicationMetadata {
@@ -384,6 +385,8 @@ interface PublicationMetadata {
 
 interface NoteComponentPassage extends NoteComponentDefault {
     noteType?: "passage";
+    /** Entry doc for passage note component. */
+    doc?: string;
     /** Only found in passage components! Use `ContentStart` when parsing to grab the title. */
     title: string;
     publicationMetadata: PublicationMetadata;
