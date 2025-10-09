@@ -32,8 +32,13 @@ type Range<Min extends number, Max extends number> =
 
 
 
-type mCLASSAnswer = {input: string, itemId?: string} & (ChoiceSingle | ChoiceMultiple | SingleNumberSole | SingleNumberRange | ExpressionExpandedForm | ExpressionExpression | EquationEquation | EquationFraction | Coordinate | WithVariableExpression | WithVariableInequality | WithVariableEquation | Uncategorized);
+type mCLASSAnswer = {input: string, itemId?: string} & (Interactive | ChoiceSingle | ChoiceMultiple | SingleNumberSole | SingleNumberRange | ExpressionExpandedForm | ExpressionExpression | EquationEquation | EquationFraction | Coordinate | WithVariableExpression | WithVariableInequality | WithVariableEquation | Uncategorized | InvalidGrade);
 
+
+interface Interactive {
+    type: "interactive",
+    grade: Range<0,12>;
+}
 
 interface ChoiceSingle {
     type: "choice-single";
@@ -117,6 +122,10 @@ interface WithVariableEquation {
 
 interface Uncategorized {
     type: "uncategorized";
+}
+
+interface InvalidGrade {
+    type: "invalid-grade";
 }
 
 function findGCF(a: number, b: number, iterations=0) {
@@ -218,9 +227,13 @@ export class MCLASSImportService {
         
         // Apply fraction replacement immediately.
         input = input.trim();
+        input = input.replace(/\$/g, "");
         for (const [regex, replacement] of unicodeFractionsMap) {
             input = input.replace(regex, replacement);
         }
+        input = input.replace(/\\frac\{(\d)\}\{(\d)\}/, (match, numerator, denominator) => {
+            return `${denominator}/${numerator}`;
+        });
 
         /** Obtain the grade used here */
         const gradeMap: Map<string, Range<0,8>> = new Map([
@@ -238,7 +251,7 @@ export class MCLASSImportService {
         const grade = gradeMap.get(prefix);
         // If the grade was not obtained, we are not safe to proceed.
         if (grade === undefined) return {
-            type: "uncategorized", 
+            type: "invalid-grade", 
             input
         };
         
@@ -250,6 +263,9 @@ export class MCLASSImportService {
 
         /** Is this a multiple choice answer? */
         const isChoiceMultiple = answerType === "MC - Multiple" || answerType === "MC - Multiple, 📈 Static Graph";
+
+        /** Is this in interactive? */
+        const isInteractive = answerType === "Interaction";
         
         /** Is this a single lone value? */
         const isSingleNumberSole = (new RegExp(`^${NUMBER}$`)).test(input);
@@ -259,8 +275,6 @@ export class MCLASSImportService {
         /** Is the range simply on its own? */
         const matchSingleNumberRangeSimple = input.match(/^(\d+)-(\d+)$/);
 
-        let x: mCLASSAnswer;
-
         /** Is this an expression to be written as expanded form? */
         const isExpressionExpandedForm = (new RegExp(`^${NUMBER}`)).test(input) && /equiv(alent)? expression/.test(input);
 
@@ -269,18 +283,20 @@ export class MCLASSImportService {
 
 
         /** Is this an expression to be written as an equation? */
-        const isEquationEquation = (new RegExp(`^${NUMBER}`)).test(input) && /with equations?/.test(input);
-
-        /** Is this detecting a fraction? */
-        const isEquationFraction = ((new RegExp(`^${NUMBER}`)).test(input) && /equivalents?\/equations?/.test(input)) || (new RegExp(`^${NUMBER} or equivalent`)).test(input);
-
-        const isEquation = isEquationEquation || isEquationFraction;
+        const isEquationEquation = (new RegExp(`^${NUMBER}`)).test(input) && /(with|include) equations?/.test(input);
+        /** Is this detecting a fraction via language use? */
+        const isEquationFraction = (new RegExp(`^${NUMBER}`).test(input) && /equivalents?\/equations?/.test(input)) || (new RegExp(`^${NUMBER} or equivalent`)).test(input);
+        /** Is there a clear fraction written? */
+        const matchFractionSimple = input.match(/^\d*\s*(\d+)\s*\/\s*(\d+)/);
+        
+        const isEquation = matchFractionSimple || isEquationEquation || isEquationFraction;
 
         
+
+        /** Is this a simple coordinate? */
+        const isCoordinate = (new RegExp(`^\\(\\s*${NUMBER}\\s*,\\s*${NUMBER}\\)$`)).test(input);
         
         //-------- STAGE TWO: RETURN BASED ON BOOLEAN VALUES --------//
-
-        if (entry["Item ID"] === "00106") console.log(input, isEquationEquation, isEquation);
 
         // Knock out the multiple choices, since these are trivial.
         if (isChoiceSingle) {
@@ -326,6 +342,13 @@ export class MCLASSImportService {
             };
 
         }
+        else if (isInteractive) {
+            return {
+                type: "interactive",
+                grade,
+                input
+            };
+        }
 
         // Immediately if this is grade 0 or 1, it can only yield a single type.
         else if (grade === 0 || grade === 1) {
@@ -363,7 +386,6 @@ export class MCLASSImportService {
 
         // The fraction needs to be rooted out immediately, so this will go first.
         else if (isEquation) {
-            if (entry["Item ID"] === "00106") console.log(input, isEquationEquation, isEquation);
             //console.log(input);
             
             const matchFraction = input.match(/(-?\d+)\s*\/\s*(\d+)/);
@@ -477,6 +499,22 @@ export class MCLASSImportService {
             return {
                 type: "expression-expression",
                 keyValues,
+                grade,
+                input,
+            };
+        }
+
+        else if (isCoordinate && grade !== 2 && grade !== 3) {
+            const match = input.match(new RegExp(`${NUMBER}`, "g"));
+            if (!match) throw Error("You've done really bad. " + input);
+
+            const keyX = parseFloat(match[0]);
+            const keyY = parseFloat(match[1]);
+
+            return {
+                type: "coordinate",
+                keyX,
+                keyY,
                 grade,
                 input,
             };

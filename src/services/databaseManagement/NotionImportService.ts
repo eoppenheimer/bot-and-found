@@ -62,6 +62,12 @@ export class NotionImportService {
 
         const data = await parseCSV<Omit<INotionMCLASSItemsDatabaseModel, "id"> & {id?: INotionMCLASSItemsDatabaseModel["id"]}>(filePath);
 
+        const runtimeResult = {
+            changes: 0,
+            overwrites: 0,
+            added: 0,
+        };
+
         for (const entry of data) {
 
             if (!entry["Item ID"]) {
@@ -73,13 +79,15 @@ export class NotionImportService {
 
             const alreadyExists = notionMCLASSItemsDatabaseModel.exists(entry.id);
 
-            const verb = alreadyExists ? "Overwrote" : "Created";
+            if (alreadyExists) runtimeResult.overwrites++;
+            else runtimeResult.added++; 
             
             const result = notionMCLASSItemsDatabaseModel.overwrite(entry as INotionMCLASSItemsDatabaseModel);
 
-            console.log(verb, "from", JSON.stringify(filePath), "successfully.", result);
+            runtimeResult.changes++;
         }
         
+        console.log("Read from", JSON.stringify(filePath), "successfully.", runtimeResult);
     }
 
 }
