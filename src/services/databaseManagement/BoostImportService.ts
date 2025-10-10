@@ -1,37 +1,32 @@
-import fs from "fs/promises";
-import path from "path";
-import { IActivityMeta, ICollectionCommit, ICollectionMeta, activityMetaModel, collectionCommitModel, collectionMetaModel } from "../../models";
+import { IActivityMeta, IActivityModel, ICollectionCommit, ICollectionMeta, activityCommitModel, activityMetaModel, activityModel, collectionCommitModel, collectionMetaModel } from "../../models";
 import { ObjectId } from "mongodb";
-import { RangeInt, recurseCollection } from "../../utils";
+import { RangeInt, recurseCollection, areUint8ArraysEqual } from "../../utils";
 
 type Grade = RangeInt<0,8>;
 
+const REGEX_TITLE = /^G([K1-8])\.U(\d+)\.SU?(\d+)\.L(\d+) (?:\(s?BPL\)|\[s?BPL\])$/;
 
 
 
 
-export interface BoostRoot {
-    collectionId: ObjectId;
-    grades: BoostGrade[];
-}
-
-interface BoostGrade {
-    grade: Grade;
+export interface BoostGrade {
+    gradeNumber?: Grade;
     collectionId: ObjectId;
     units: BoostUnit[];
 }
 
 interface BoostUnit {
-    unit: number;
+    unitNumber?: number;
     collectionId: ObjectId;
-    activites: BoostActivity[];
+    activities: BoostActivity[];
 }
 
 interface BoostActivity {
+    subunitNumber?: number;
+    lessonNumber?: number;
     activityId: ObjectId;
     commitId?: ObjectId;
-    title: string;
-    doc?: any;
+    metadata?: IActivityMeta;
 }
 
 
@@ -55,17 +50,9 @@ export class BoostImportService {
         const _id = new ObjectId(AMPLIFY_COLLECTION_BOOST_PERSONALIZED_LEARNING_MASTER);
 
         /** List of each grade ID. */
-        const listGrades: ObjectGrade[] = [];
-        type ObjectGrade = {collectionId: ObjectId, units: {id: ObjectId, objUnit?: ObjectUnit}[], gradeNumber?: Grade};
-        
-        /** List of each unit ID. */
-        type ObjectUnit = {collectionId: ObjectId, activities: {id: ObjectId, objActivity?: ObjectActivity}[], unitNumber?: number};
+        const listGrades: BoostGrade[] = [];
 
-        /** List of each activity ID. */
-        type ObjectActivity = {activityId: ObjectId, commitId: ObjectId; subunitNumber?: number, lessonNumber?: number};
-
-        
-
+        // Perform each of these steps as we descend along 
         await recurseCollection(_id, [
 
             // Depth 1: sBPL [Master] Entry.
@@ -135,7 +122,7 @@ export class BoostImportService {
                         // Grab the child collection.
                         if (item.type === "subcollection") {
                             collectionIds.push(item.collectionId);
-                            parent.units.push({id: item.collectionId});
+                            parent.units.push({collectionId: item.collectionId, activities: []});
                         }
 
                         // Verify there are no activities or dividers.
@@ -170,9 +157,9 @@ export class BoostImportService {
                     const unit = parseInt(match[2]);
 
                     /** Attach this to the parent entry. */
-                    const parent = listGrades.flatMap(x=>x.units).find(x=>x.id.equals(metaId));
+                    const parent = listGrades.flatMap(x=>x.units).find(x=>x.collectionId.equals(metaId));
                     if (!parent) throw Error(`Collection ${metaId}: Critically failed to grab parent ID.`);
-                    parent.objUnit = {collectionId: metaId, unitNumber: unit, activities: []};
+                    parent.unitNumber = unit;
 
                     // For each child of this collection:
                     for (const item of commit.items) {
@@ -180,7 +167,7 @@ export class BoostImportService {
                         // Grab the child activity.
                         if (item.type === "collection-activity") {
                             activityIds.push(item.activityId);
-                            parent.objUnit.activities.push({id: item.activityId});
+                            parent.activities.push({activityId: item.activityId});
                         }
 
                         // Verify there are no subcollections or dividers.
@@ -191,9 +178,13 @@ export class BoostImportService {
                     console.log(3, commit.title);
                 }
 
-                return {collectionIds,activityIds};
+                console.log(/Searchng/, activityIds.length, /activities./);
+                return {collectionIds, activityIds};
             },
+
+            // Grab the metadata of the activities collected.
             metadataList => {
+                console.log(/Received/, metadataList.length, /activities./);
                 for (const metadata of metadataList) {
 
                     const metaId = metadata._id;
@@ -202,26 +193,92 @@ export class BoostImportService {
                     if (!commitId) throw Error(`Collection ${metaId}: Critically failed to grab commitId.`);
 
                     /** Attach this to the parent entry. */
-                    const parent = listGrades.flatMap(x=>x.units).flatMap(x=>x.objUnit).flatMap(x=>x?.activities).find(x=>x?.id.equals(metaId));
+                    const parent = listGrades.flatMap(x=>x.units).flatMap(x=>x.activities).find(x=>x.activityId.equals(metaId));
                     if (!parent) throw Error(`Collection ${metaId}: Critically failed to grab parent ID.`);
                     
-                    parent.objActivity = {activityId: metaId, commitId};
+                    parent.commitId = commitId;
+                    parent.metadata = metadata;
                 }
                 
             }]
         ]);
+        
 
+        // The collections are now collected!
+        // Now let's sanitize everything once and for all!
         for (const grade of listGrades) {
-            for (const a of grade.units) {
-                if (!a.objUnit) continue;
-                const unit = a.objUnit;
-                for (const b of unit.activities) {
-                    if (!b.objActivity) continue;
-                    const activity = b.objActivity;
+            if (grade.gradeNumber === undefined) {
+                console.log(/grade/, grade.collectionId, /skipped, no gradeNumber/);
+                continue;
+            }
+            for (const unit of grade.units) {
+                if (unit.unitNumber === undefined) {
+                    console.log(/grade/, grade.gradeNumber, unit.collectionId, /skipped, no unitNumber/);
+                    continue;
+                }
+                for (const activity of unit.activities) {
+                    const {activityId, commitId, metadata} = activity;
+                    if (commitId === undefined || metadata === undefined) {
+                        console.log(/grade/, grade.gradeNumber, /unit/, unit.unitNumber, activity.activityId, /skipped, no commitId/);
+                        continue;
+                    }
+
+                    /** Does this model already exist in our local database? If so, retrieve its commit ID. */
+                    let model = activityModel.findOne(activityId.id);
+
                     
-                    console.log(grade.gradeNumber, unit.unitNumber, activity);
+                    // Does this model either not exist, or does it require to be updated?
+                    if (!model || !areUint8ArraysEqual(commitId.id, model.idCommit)) {
+                        const action = model ? "Updating" : "Downloading";
+                        console.log("⏳", action, [activityId.toHexString()]);
+
+                        /** Download the latest version. */
+                        const commit = await activityCommitModel.findOne({_id: commitId});
+
+                        // If there exists no commit, something has gone terribly wrong that I'd like to halt everything.
+                        if (!commit) throw Error(`Activity ${activityId}: Failed to fetch its commit ${commitId}. This is fatal enough to investigate how this slipped through.`);
+
+                        const activityData = {
+                            id: activityId.id,
+                            idCommit: commitId.id,
+                            timestampSnapshot: commit.edit_ts,
+                            categories: ["bplMasterCollection"],
+                            metaSnapshot: metadata,
+                            commitSnapshot: commit
+                        } satisfies IActivityModel;
+
+                        if (model) activityModel.overwrite(activityData);
+                        else activityModel.create(activityData);
+
+                        model = activityData;
+                    }
+                    else {
+                        // Skipping, this already exists.
+                    }
+
+                    const {title} = model.commitSnapshot.doc;
+                    const match = title.match(REGEX_TITLE);
+
+                    if (!match) {
+                        console.log(/grade/, grade.gradeNumber, /unit/, unit.unitNumber, activity.activityId, /bad match/, title);
+                        continue;
+                    }
+                    
+                    const parsed = match.map(x=>parseInt(x));
+
+                    const _convertedGrade = convertToGrade(match[1]);
+                    console.log(_convertedGrade, parsed[2], parsed[3], parsed[4], title);                    
+
+                    if (grade.gradeNumber !== _convertedGrade || unit.unitNumber !== parsed[2]) {
+                        throw Error(`Collection ${_id}: Found lesson placed in wrong folder. Expected G${grade.gradeNumber}.U${unit.unitNumber} but got G${_convertedGrade}.U${parsed[2]} instead.`);
+                    }
+
+                    const positionCollection = unit.activities.indexOf(activity);
+                    
                 }
             }
         }
+
+        console.log("Done!");
     }
 }

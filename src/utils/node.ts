@@ -174,6 +174,41 @@ export function findDuplicates<T>(array: T[]) {
 }
 
 /**
+ * Determines if an array is sorted, and only contains unique elements.
+ * @param array The array we want to determine is sorted.
+ * @returns Whether this array is sorted or not.
+ */
+export function isSortedAndUnique(array: number[]): boolean {
+    
+    // Edge case will always be true.
+    if (array.length <= 1) return true;
+  
+    // Single pass: Check if each element is greater than the previous.
+    // This ensures both ascending order and uniqueness.
+    for (let i = 1; i < array.length; i++) {
+        if (array[i] <= array[i - 1]) return false;
+    }
+  
+    return true;
+}
+
+/**
+ * Check that two buffers are equal to each other.
+ * @param a The first integer array.
+ * @param b The second integer array.
+ * @returns Are these equal?
+ */
+export function areUint8ArraysEqual(a: Uint8Array, b: Uint8Array): boolean {
+    if (a.length !== b.length) return false;
+  
+    for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) return false;
+    }
+  
+    return true;
+}
+
+/**
  * Returns a completed CSV file compiled into different columns, with the first row as the header.
  * @param filePath The path to read the string at.
  * @param PutYourInterfaceHere The output of the CSV should follow this type.

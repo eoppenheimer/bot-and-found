@@ -31,7 +31,7 @@ type RecurseCallback = {
 
 
 /**
- * Performs the recursion to descend into a collection.
+ * Performs the recursion to descend into an Amplify Education collection.
  * @param idCollectionMetaEntry The result of our previous iteration.
  * @param callbacks The callback functions to be executed for each iteration. For each entry, `[0]` stores what to do for all the `collectionId`'s you encounter, and `[1]` stores what to do for all `activityId`'s of the `[0]` result.
 */

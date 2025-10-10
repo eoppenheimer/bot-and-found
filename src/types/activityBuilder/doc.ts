@@ -226,7 +226,9 @@ export interface AuthorGroupAccess {
  * You primarily will find this using `activityCommits` on MongoDB, but it will also get attached to the Activity Builder itself.
 */
 interface ActivityDoc {
+    /** List of screens that exist on the activity. */
     steps: Step[];
+    /** Title of the activity. */
     title: string;
     subtitle?: string;
     flags?: Flags;

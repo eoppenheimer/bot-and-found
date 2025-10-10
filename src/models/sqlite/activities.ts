@@ -5,7 +5,7 @@ export interface IActivityModel {
     id: Uint8Array;
     idCommit: Uint8Array;
     timestampSnapshot: Date;
-    categories: string[];
+    categories: ("bplMasterCollection")[];
     metaSnapshot: IActivityMeta;
     commitSnapshot: IActivityCommit;
 }

@@ -1,2 +1,2 @@
-export { pruneJSON, generateHash, RangeInt } from "./node";
+export { pruneJSON, generateHash, RangeInt, areUint8ArraysEqual, isSortedAndUnique } from "./node";
 export { recurseCollection } from "./mongo";
