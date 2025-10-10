@@ -1,6 +1,7 @@
 import { GoogleSpreadsheetImportService } from "./GoogleSpreadsheetImportService";
 import { NotionImportService } from "./NotionImportService";
 import { MCLASSImportService } from "./MCLASSImportService";
+import { BoostImportService } from "./BoostImportService";
 
 
 
@@ -10,6 +11,7 @@ export class DatabaseManagementService {
     private googleSpreadsheetParser = new GoogleSpreadsheetImportService();
     private notionParser = new NotionImportService();
     private mCLASSParser = new MCLASSImportService();
+    private boostParser = new BoostImportService();
 
     /** This scans for any Google Spreadsheet files and commits them to the database. */
     updateGoogleSpreadsheets() {
@@ -25,6 +27,10 @@ export class DatabaseManagementService {
 
     updateMCLASS() {
         this.mCLASSParser.run();
+    }
+
+    updateBoost() {
+        this.boostParser.getBoostMasterCollection();
     }
 
 

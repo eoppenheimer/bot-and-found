@@ -14,5 +14,8 @@ services:
             # SQLite Path
             DATABASE_PATH: ${DATABASE_PATH:-SQLite Path for Storage}
 
+            # Amplify Classroom UUIDs
+            AMPLIFY_COLLECTION_BOOST_PERSONALIZED_LEARNING_MASTER: ${AMPLIFY_COLLECTION_BOOST_PERSONALIZED_LEARNING_MASTER:-Amplify Collection for Boost Personalized Learning Master}
+
         volumes:
             - ./database:/database

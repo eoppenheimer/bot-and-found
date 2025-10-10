@@ -15,7 +15,8 @@ const PORT = process.env.PORT || 8080;
 const d = new DatabaseManagementService();
 
 //d.updateNotion();
-d.updateMCLASS();
+//d.updateMCLASS();
+d.updateBoost();
 app.listen(PORT, async () => {
     //mongoConnection.connect();
     sqliteConnection.getDb();

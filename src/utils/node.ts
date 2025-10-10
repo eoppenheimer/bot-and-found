@@ -208,3 +208,32 @@ export function arrayIncludes<T extends readonly string[]>(
 ): value is T[number] {
     return (arr as readonly string[]).includes(value);
 }
+
+type Enumerate<N extends number, Acc extends number[] = []> = 
+  Acc["length"] extends N
+    ? Acc[number]
+    : Enumerate<N, [...Acc, Acc["length"]]>;
+
+// Helper to add 1 to a number (up to reasonable limits)
+type Inc<N extends number> = 
+    N extends 0 ? 1 :
+    N extends 1 ? 2 :
+    N extends 2 ? 3 :
+    N extends 3 ? 4 :
+    N extends 4 ? 5 :
+    N extends 5 ? 6 :
+    N extends 6 ? 7 :
+    N extends 7 ? 8 :
+    N extends 8 ? 9 :
+    N extends 9 ? 10 :
+    N extends 10 ? 11 :
+    N extends 11 ? 12 :
+    N extends 12 ? 13 :
+    N extends 13 ? 14 :
+    N extends 14 ? 15 :
+    N extends 15 ? 16 :
+    never;
+
+/** Generates a range of numbers, given a min and a max. Only works from 0-16. */
+export type RangeInt<Min extends number, Max extends number> = 
+    Exclude<Enumerate<Inc<Max>>, Enumerate<Min>>;

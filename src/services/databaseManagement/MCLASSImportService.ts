@@ -1,35 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { INotionMCLASSItemsDatabaseModel, notionMCLASSItemsDatabaseModel } from "../../models";
-
-type Enumerate<N extends number, Acc extends number[] = []> = 
-  Acc["length"] extends N
-    ? Acc[number]
-    : Enumerate<N, [...Acc, Acc["length"]]>;
-
-// Helper to add 1 to a number (up to reasonable limits)
-type Inc<N extends number> = 
-    N extends 0 ? 1 :
-    N extends 1 ? 2 :
-    N extends 2 ? 3 :
-    N extends 3 ? 4 :
-    N extends 4 ? 5 :
-    N extends 5 ? 6 :
-    N extends 6 ? 7 :
-    N extends 7 ? 8 :
-    N extends 8 ? 9 :
-    N extends 9 ? 10 :
-    N extends 10 ? 11 :
-    N extends 11 ? 12 :
-    N extends 12 ? 13 :
-    N extends 13 ? 14 :
-    N extends 14 ? 15 :
-    N extends 15 ? 16 :
-    never;
-
-type Range<Min extends number, Max extends number> = 
-    Exclude<Enumerate<Inc<Max>>, Enumerate<Min>>;
-
+import { RangeInt } from "../../utils";
 
 
 type mCLASSAnswer = {input: string, itemId?: string} & (Interactive | ChoiceSingle | ChoiceMultiple | SingleNumberSole | SingleNumberRange | ExpressionExpandedForm | ExpressionExpression | EquationEquation | EquationFraction | Coordinate | WithVariableExpression | WithVariableInequality | WithVariableEquation | Uncategorized | InvalidGrade);
@@ -37,30 +9,30 @@ type mCLASSAnswer = {input: string, itemId?: string} & (Interactive | ChoiceSing
 
 interface Interactive {
     type: "interactive",
-    grade: Range<0,12>;
+    grade: RangeInt<0,12>;
 }
 
 interface ChoiceSingle {
     type: "choice-single";
-    grade: Range<0,12>;
+    grade: RangeInt<0,12>;
     choice: string;
 }
 
 interface ChoiceMultiple {
     type: "choice-multiple";
-    grade: Range<0,12>;
+    grade: RangeInt<0,12>;
     choices: string[];
 }
 
 interface SingleNumberSole {
     type: "single-number-sole";
-    grade: Range<0,12>;
+    grade: RangeInt<0,12>;
     answerKey: number[];
 }
 
 interface SingleNumberRange {
     type: "single-number-range";
-    grade: Range<2,12>;
+    grade: RangeInt<2,12>;
     keyLower: number;
     keyUpper: number;
     inclusivity: "inclusive" | "exclusive"
@@ -68,52 +40,52 @@ interface SingleNumberRange {
 
 interface ExpressionExpandedForm {
     type: "expression-expanded-form";
-    grade: Range<2,12>;
+    grade: RangeInt<2,12>;
     keyValues: number[];
 }
 
 interface ExpressionExpression {
     type: "expression-expression";
-    grade: Range<2,12>;
+    grade: RangeInt<2,12>;
     keyValues: number[];
 }
 
 interface EquationEquation {
     type: "equation-equation";
-    grade: Range<2,12>;
+    grade: RangeInt<2,12>;
     keyValues: number[];
 }
 
 interface EquationFraction {
     type: "equation-fraction";
-    grade: Range<2,12>;
+    grade: RangeInt<2,12>;
     keyValues: number[];
 }
 
 interface Coordinate {
     type: "coordinate";
-    grade: Range<4,12>;
+    grade: RangeInt<4,12>;
     keyX: number;
     keyY: number;
 }
 
 interface WithVariableExpression {
     type: "with-variable-expression";
-    grade: Range<6,12>;
+    grade: RangeInt<6,12>;
     var: string;
     fnSolution: string;
 }
 
 interface WithVariableInequality {
     type: "with-variable-inequality";
-    grade: Range<6,12>;
+    grade: RangeInt<6,12>;
     var: string;
     fnSolution: string;
 }
 
 interface WithVariableEquation {
     type: "with-variable-equation";
-    grade: Range<6,12>;
+    grade: RangeInt<6,12>;
     var1: string;
     var2: string;
     /** Use LaTeX. */
@@ -236,7 +208,7 @@ export class MCLASSImportService {
         });
 
         /** Obtain the grade used here */
-        const gradeMap: Map<string, Range<0,8>> = new Map([
+        const gradeMap: Map<string, RangeInt<0,8>> = new Map([
             ["00", 0],
             ["10", 1], 
             ["20", 2],
